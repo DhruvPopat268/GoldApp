@@ -14,14 +14,28 @@ const ACCOUNT_REGEX = /^[A-Za-z0-9]{5,20}$/;
 const ACTIVE = { is_deleted: false };
 const DELETED = { is_deleted: true };
 
-const deleteFile = (relPath) => {
-  if (!relPath) return;
-  const abs = path.join(__dirname, '..', relPath);
+const BASE_URL = () => process.env.BASE_URL || 'http://localhost:5000';
+
+// Convert a stored full URL back to a filesystem path for deletion
+const deleteFile = (fileUrl) => {
+  if (!fileUrl) return;
   try {
+    const pathname = new URL(fileUrl).pathname; // e.g. /cloud/images/uuid.jpg
+    const abs =
+      process.env.NODE_ENV === 'production'
+        ? path.join('/app', pathname)
+        : path.join(__dirname, '..', pathname);
     if (fs.existsSync(abs)) fs.unlinkSync(abs);
   } catch {
     /* ignore */
   }
+};
+
+const imgUrl = (filename) => {
+  const base = BASE_URL();
+  return process.env.NODE_ENV === 'production'
+    ? `${base}/cloud/images/${filename}`
+    : `${base}/uploads/gold_items/${filename}`;
 };
 
 const processItems = async (items, userId, existingItems = []) => {
@@ -77,7 +91,8 @@ const buildPDFPayload = (loan, bank, settings, baseUrl) => {
     items: loan
       .toObject()
       .items.map((item) => ({ ...item, category_id: item.category_id?.toString() })),
-    images: loan.images ? loan.images.map((img) => (img ? `${baseUrl}${img}` : null)) : [],
+    // images are already full URLs stored in DB — pass them as-is
+    images: loan.images || [],
   };
   const settingsForPDF = settings
     ? {
@@ -106,7 +121,7 @@ exports.createLoan = async (req, res, next) => {
     if (req.files)
       Object.values(req.files)
         .flat()
-        .forEach((f) => uploadedFiles.push(`/uploads/gold_items/${f.filename}`));
+        .forEach((f) => uploadedFiles.push(imgUrl(f.filename)));
 
     const requiredFields = {
       bank_id,
@@ -166,7 +181,7 @@ exports.createLoan = async (req, res, next) => {
 
     const allImages =
       req.files && req.files['item_image']
-        ? req.files['item_image'].map((f) => `/uploads/gold_items/${f.filename}`)
+        ? req.files['item_image'].map((f) => imgUrl(f.filename))
         : [];
 
     const loan = await Loan.create({
@@ -187,7 +202,7 @@ exports.createLoan = async (req, res, next) => {
     });
 
     const categories = await Category.find({ user_id: req.user.id, ...ACTIVE });
-    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+    const baseUrl = BASE_URL();
     const { loanForPDF, bankForPDF, settingsForPDF } = buildPDFPayload(
       loan,
       bank,
@@ -195,17 +210,13 @@ exports.createLoan = async (req, res, next) => {
       baseUrl
     );
 
-    const pdfRelPath = await generatePDF(loanForPDF, bankForPDF, categories, settingsForPDF);
-    loan.pdf_path = pdfRelPath;
+    const pdfUrl = await generatePDF(loanForPDF, bankForPDF, categories, settingsForPDF);
+    loan.pdf_path = pdfUrl;
     await loan.save();
 
     return success(
       res,
-      {
-        ...loan.toObject(),
-        pdf_url: `${baseUrl}${pdfRelPath}`,
-        total_items: total_items,
-      },
+      { ...loan.toObject(), pdf_url: pdfUrl, total_items },
       'Loan created successfully',
       201
     );
@@ -221,13 +232,9 @@ exports.getLoans = async (req, res, next) => {
       .populate('bank_id', 'name logo')
       .populate('items.category_id', 'name')
       .sort({ createdAt: -1 });
-    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
     return success(
       res,
-      loans.map((l) => ({
-        ...l.toObject(),
-        pdf_url: l.pdf_path ? `${baseUrl}${l.pdf_path}` : null,
-      })),
+      loans.map((l) => ({ ...l.toObject(), pdf_url: l.pdf_path || null })),
       'Loans retrieved successfully'
     );
   } catch (err) {
@@ -261,13 +268,9 @@ exports.getLoansHistory = async (req, res, next) => {
       .populate('items.category_id', 'name')
       .sort({ createdAt: -1 });
 
-    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
     return success(
       res,
-      loans.map((l) => ({
-        ...l.toObject(),
-        pdf_url: l.pdf_path ? `${baseUrl}${l.pdf_path}` : null,
-      })),
+      loans.map((l) => ({ ...l.toObject(), pdf_url: l.pdf_path || null })),
       'Loan history retrieved successfully'
     );
   } catch (err) {
@@ -333,7 +336,7 @@ exports.regeneratePDF = async (req, res, next) => {
 
     const settings = await Settings.findOne({ user_id: req.user.id });
     const categories = await Category.find({ user_id: req.user.id, ...ACTIVE });
-    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+    const baseUrl = BASE_URL();
     const { loanForPDF, bankForPDF, settingsForPDF } = buildPDFPayload(
       loan,
       bank,
@@ -342,11 +345,11 @@ exports.regeneratePDF = async (req, res, next) => {
     );
 
     deleteFile(loan.pdf_path);
-    const pdfRelPath = await generatePDF(loanForPDF, bankForPDF, categories, settingsForPDF);
-    loan.pdf_path = pdfRelPath;
+    const pdfUrl = await generatePDF(loanForPDF, bankForPDF, categories, settingsForPDF);
+    loan.pdf_path = pdfUrl;
     await loan.save();
 
-    return success(res, { pdf_url: `${baseUrl}${pdfRelPath}` }, 'PDF regenerated successfully');
+    return success(res, { pdf_url: pdfUrl }, 'PDF regenerated successfully');
   } catch (err) {
     next(err);
   }
@@ -371,10 +374,9 @@ exports.getLoanById = async (req, res, next) => {
       .populate('bank_id', 'name logo')
       .populate('items.category_id', 'name');
     if (!loan) return error(res, 'Loan not found', 404);
-    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
     return success(
       res,
-      { ...loan.toObject(), pdf_url: loan.pdf_path ? `${baseUrl}${loan.pdf_path}` : null },
+      { ...loan.toObject(), pdf_url: loan.pdf_path || null },
       'Loan retrieved successfully'
     );
   } catch (err) {
@@ -392,7 +394,7 @@ exports.updateLoan = async (req, res, next) => {
     if (req.files)
       Object.values(req.files)
         .flat()
-        .forEach((f) => uploadedFiles.push(`/uploads/gold_items/${f.filename}`));
+        .forEach((f) => uploadedFiles.push(imgUrl(f.filename)));
 
     const {
       bank_id,
@@ -465,14 +467,14 @@ exports.updateLoan = async (req, res, next) => {
 
     // Handle new images
     if (req.files && req.files['item_image']) {
-      const newImages = req.files['item_image'].map((f) => `/uploads/gold_items/${f.filename}`);
+      const newImages = req.files['item_image'].map((f) => imgUrl(f.filename));
       loan.images = [...(loan.images || []), ...newImages];
     }
 
     const bank = await Bank.findById(loan.bank_id);
     const settings = await Settings.findOne({ user_id: req.user.id });
     const categories = await Category.find({ user_id: req.user.id, ...ACTIVE });
-    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+    const baseUrl = BASE_URL();
     const { loanForPDF, bankForPDF, settingsForPDF } = buildPDFPayload(
       loan,
       bank,
@@ -481,17 +483,13 @@ exports.updateLoan = async (req, res, next) => {
     );
 
     deleteFile(loan.pdf_path);
-    const pdfRelPath = await generatePDF(loanForPDF, bankForPDF, categories, settingsForPDF);
-    loan.pdf_path = pdfRelPath;
+    const pdfUrl = await generatePDF(loanForPDF, bankForPDF, categories, settingsForPDF);
+    loan.pdf_path = pdfUrl;
     await loan.save();
 
     return success(
       res,
-      {
-        ...loan.toObject(),
-        pdf_url: `${baseUrl}${pdfRelPath}`,
-        total_items: loan.total_items,
-      },
+      { ...loan.toObject(), pdf_url: pdfUrl, total_items: loan.total_items },
       'Loan updated successfully'
     );
   } catch (err) {

@@ -37,7 +37,15 @@ function getDataUri(urlStr, baseUrl) {
     const base = new URL(baseUrl);
     const target = new URL(urlStr);
     if (target.protocol !== base.protocol || target.host !== base.host) return null;
-    const filePath = path.join(__dirname, '..', target.pathname);
+    // Map URL pathname to filesystem path
+    let filePath;
+    if (process.env.NODE_ENV === 'production') {
+      // /cloud/images/x.jpg  → /app/cloud/images/x.jpg
+      // /cloud/documents/x.pdf → /app/cloud/documents/x.pdf
+      filePath = path.join('/app', target.pathname);
+    } else {
+      filePath = path.join(__dirname, '..', target.pathname);
+    }
     if (!fs.existsSync(filePath)) return null;
     const ext = path.extname(filePath).slice(1).toLowerCase();
     const mime =
@@ -243,7 +251,15 @@ async function generatePDF(loan, bank, categories, settings = null) {
   const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
   const html = buildHTML(loan, bank, categories, settings, baseUrl);
   const filename = `loan_${loan._id}_${randomUUID()}.pdf`;
-  const outputPath = path.join(__dirname, '../uploads/pdf', filename);
+  const docsDir =
+    process.env.NODE_ENV === 'production'
+      ? '/app/cloud/documents'
+      : path.join(__dirname, '../uploads/pdf');
+  const outputPath = path.join(docsDir, filename);
+  const pdfUrl =
+    process.env.NODE_ENV === 'production'
+      ? `${baseUrl}/cloud/documents/${filename}`
+      : `${baseUrl}/uploads/pdf/${filename}`;
 
   const browser = await puppeteer.launch({
     headless: 'new',
@@ -281,7 +297,7 @@ async function generatePDF(loan, bank, categories, settings = null) {
     await browser.close();
   }
 
-  return `/uploads/pdf/${filename}`;
+  return pdfUrl;
 }
 
 module.exports = { generatePDF };

@@ -29,19 +29,23 @@ const MIME_TO_EXT = {
 };
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
+// Use volume-mounted paths in production, fallback to local uploads/ in dev
+const IMAGES_DIR =
+  process.env.NODE_ENV === 'production'
+    ? '/app/cloud/images'
+    : path.resolve(__dirname, '../uploads/gold_items');
+
+const BANKS_DIR =
+  process.env.NODE_ENV === 'production'
+    ? '/app/cloud/images'
+    : path.resolve(__dirname, '../uploads/banks');
+
 const storage = (dest) =>
   multer.diskStorage({
-    destination: (req, file, cb) => {
-      // Resolve destination and ensure it stays within uploads/
-      const base = path.resolve(__dirname, '../uploads');
-      const target = path.resolve(base, dest);
-      if (!target.startsWith(base)) return cb(new Error('Invalid upload destination'));
-      cb(null, target);
-    },
+    destination: (req, file, cb) => cb(null, dest),
     filename: (req, file, cb) => {
-      // Extension is derived from MIME type — never from user-supplied filename
       const ext = MIME_TO_EXT[file.mimetype] || '.jpg';
-      cb(null, `${uuidv4()}${ext}`);
+      cb(null, `${randomUUID()}${ext}`);
     },
   });
 
@@ -54,13 +58,16 @@ const imageFilter = (req, file, cb) => {
 };
 
 exports.bankUpload = multer({
-  storage: storage('banks'),
+  storage: storage(BANKS_DIR),
   fileFilter: imageFilter,
   limits: { fileSize: MAX_FILE_SIZE },
 });
 
 exports.loanUpload = multer({
-  storage: storage('gold_items'),
+  storage: storage(IMAGES_DIR),
   fileFilter: imageFilter,
   limits: { fileSize: MAX_FILE_SIZE },
 });
+
+exports.IMAGES_DIR = IMAGES_DIR;
+exports.BANKS_DIR = BANKS_DIR;

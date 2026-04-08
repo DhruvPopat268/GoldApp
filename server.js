@@ -54,8 +54,13 @@ app.use(
   })
 );
 
-// Static files — disable directory listing via helmet already, serve uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Static files
+if (process.env.NODE_ENV === 'production') {
+  app.use('/cloud/images', express.static('/app/cloud/images'));
+  app.use('/cloud/documents', express.static('/app/cloud/documents'));
+} else {
+  app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+}
 
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/banks', require('./routes/bankRoutes'));
