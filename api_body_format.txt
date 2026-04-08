@@ -1,0 +1,72 @@
+=== API Request Body Format ===
+
+POST /api/loans
+Content-Type: multipart/form-data
+Authorization: Bearer {token}
+
+Form Data Fields:
+------------------
+bank_id: {bank_id}
+full_name: Ramesh Kumar
+dob: 1985-06-15
+mobile: 9876543210
+address: 123 Main Street, Chennai, Tamil Nadu
+account_number: SBI0012345678
+nominee_name: Suresh Kumar
+nominee_dob: 2005-03-20
+
+items (JSON string):
+------------------
+[
+  {
+    "category_id": "{category_id}",
+    "gross_weight": 12.5,
+    "net_weight": 11.8,
+    "carat": 22,
+    "rate_per_gram": 5800,
+    "total_items": 4
+  },
+  {
+    "category_id": "{category_id}",
+    "gross_weight": 8.0,
+    "net_weight": 7.5,
+    "carat": 18,
+    "rate_per_gram": 4800,
+    "total_items": 2
+  }
+]
+
+item_image_0: [file upload]
+item_image_1: [file upload]
+
+=== Expected Response ===
+{
+  "success": true,
+  "message": "Loan created successfully",
+  "data": {
+    "total_items": 6,
+    "total_market_value": 104440,
+    "loan_value": 78330,
+    "items": [
+      {
+        "category_id": "...",
+        "total_items": 4,
+        "gross_weight": 12.5,
+        "net_weight": 11.8,
+        "carat": 22,
+        "rate_per_gram": 5800,
+        "market_value": 68440
+      },
+      {
+        "category_id": "...",
+        "total_items": 2,
+        "gross_weight": 8.0,
+        "net_weight": 7.5,
+        "carat": 18,
+        "rate_per_gram": 4800,
+        "market_value": 36000
+      }
+    ],
+    "pdf_url": "http://localhost:5000/uploads/pdf/..."
+  }
+}

@@ -1,0 +1,27 @@
+# Environment variables — never commit real secrets
+.env
+
+# Dependencies
+node_modules/
+
+# Uploaded files — user data, not source code
+uploads/banks/*
+uploads/gold_items/*
+uploads/pdf/*
+
+# Keep the upload folder structure but not the files
+!uploads/banks/.gitkeep
+!uploads/gold_items/.gitkeep
+!uploads/pdf/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/
+.idea/
