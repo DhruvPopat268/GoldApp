@@ -527,3 +527,63 @@ exports.restoreLoan = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.getLoansByDate = async (req, res, next) => {
+  try {
+    const { date, bankId } = req.body;
+
+    console.log('=== getLoansByDate Debug ===');
+    console.log('Received date from frontend:', date);
+    console.log('Received bankId:', bankId);
+
+    if (!date) return error(res, 'date is required', 400);
+
+    // Validate dd-mm-yy format
+    const parts = date.split('-');
+    if (parts.length !== 3) return error(res, 'Invalid date format. Use dd-mm-yy', 400);
+
+    const filter = {
+      user_id: req.user.id,
+      ...ACTIVE,
+    };
+
+    if (bankId) {
+      if (!mongoose.Types.ObjectId.isValid(bankId)) return error(res, 'Invalid bankId', 400);
+      filter.bank_id = bankId;
+    }
+
+    console.log('Filter applied:', JSON.stringify(filter));
+
+    // Get all loans matching user and optional bankId
+    const allLoans = await Loan.find(filter)
+      .populate('bank_id', 'name logo')
+      .populate('items.category_id', 'name')
+      .sort({ createdAt: -1 });
+
+    console.log('Total loans fetched:', allLoans.length);
+
+    // Filter by converting createdAt to dd-mm-yy format
+    const filteredLoans = allLoans.filter((loan) => {
+      const createdAt = new Date(loan.createdAt);
+      const day = String(createdAt.getDate()).padStart(2, '0');
+      const month = String(createdAt.getMonth() + 1).padStart(2, '0');
+      const year = String(createdAt.getFullYear()).slice(-2);
+      const formattedDate = `${day}-${month}-${year}`;
+      
+      console.log(`Loan ID: ${loan._id} | createdAt: ${loan.createdAt} | Formatted: ${formattedDate} | Match: ${formattedDate === date}`);
+      
+      return formattedDate === date;
+    });
+
+    console.log('Filtered loans count:', filteredLoans.length);
+    console.log('=== End Debug ===');
+
+    return success(
+      res,
+      filteredLoans.map((l) => ({ ...l.toObject(), pdf_url: l.pdf_path || null })),
+      'Loans retrieved successfully'
+    );
+  } catch (err) {
+    next(err);
+  }
+};

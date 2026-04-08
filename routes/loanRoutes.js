@@ -11,6 +11,7 @@ const {
   getLoansHistory,
   getLoansSummary,
   regeneratePDF,
+  getLoansByDate,
 } = require('../controllers/loanController');
 const { loanUpload } = require('../middleware/upload');
 const auth = require('../middleware/authMiddleware');
@@ -20,6 +21,7 @@ const itemImageFields = [{ name: 'item_image', maxCount: 10 }];
 router.use(auth);
 
 router.post('/', loanUpload.fields(itemImageFields), createLoan);
+router.post('/by-date', getLoansByDate);
 router.get('/', getLoans);
 router.get('/trash', getTrashLoans);
 router.get('/history', getLoansHistory);
