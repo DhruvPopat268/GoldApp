@@ -538,9 +538,17 @@ exports.getLoansByDate = async (req, res, next) => {
 
     if (!date) return error(res, 'date is required', 400);
 
-    // Validate dd-mm-yy format
+    // Validate dd-mm-yyyy format
     const parts = date.split('-');
-    if (parts.length !== 3) return error(res, 'Invalid date format. Use dd-mm-yy', 400);
+    if (parts.length !== 3) return error(res, 'Invalid date format. Use dd-mm-yyyy', 400);
+
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    const year = parseInt(parts[2], 10);
+
+    if (isNaN(day) || isNaN(month) || isNaN(year)) {
+      return error(res, 'Invalid date format. Use dd-mm-yyyy', 400);
+    }
 
     const filter = {
       user_id: req.user.id,
@@ -562,13 +570,13 @@ exports.getLoansByDate = async (req, res, next) => {
 
     console.log('Total loans fetched:', allLoans.length);
 
-    // Filter by converting createdAt to dd-mm-yy format
+    // Filter by converting createdAt to dd-mm-yyyy format
     const filteredLoans = allLoans.filter((loan) => {
       const createdAt = new Date(loan.createdAt);
-      const day = String(createdAt.getDate()).padStart(2, '0');
-      const month = String(createdAt.getMonth() + 1).padStart(2, '0');
-      const year = String(createdAt.getFullYear()).slice(-2);
-      const formattedDate = `${day}-${month}-${year}`;
+      const loanDay = String(createdAt.getDate()).padStart(2, '0');
+      const loanMonth = String(createdAt.getMonth() + 1).padStart(2, '0');
+      const loanYear = String(createdAt.getFullYear());
+      const formattedDate = `${loanDay}-${loanMonth}-${loanYear}`;
       
       console.log(`Loan ID: ${loan._id} | createdAt: ${loan.createdAt} | Formatted: ${formattedDate} | Match: ${formattedDate === date}`);
       
