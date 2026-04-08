@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 const { URL } = require('url');
 
 const formatDate = (d) => (d ? new Date(d).toLocaleDateString('en-IN') : '');
@@ -242,7 +242,7 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
 async function generatePDF(loan, bank, categories, settings = null) {
   const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
   const html = buildHTML(loan, bank, categories, settings, baseUrl);
-  const filename = `loan_${loan._id}_${uuidv4()}.pdf`;
+  const filename = `loan_${loan._id}_${randomUUID()}.pdf`;
   const outputPath = path.join(__dirname, '../uploads/pdf', filename);
 
   const browser = await puppeteer.launch({
