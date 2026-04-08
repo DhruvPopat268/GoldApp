@@ -2,7 +2,6 @@ const Bank = require('../models/Bank');
 const Loan = require('../models/Loan');
 const fs = require('fs');
 const path = require('path');
-const { success, error } = require('../utils/responseHandler');
 
 const deleteFile = (relPath) => {
   if (!relPath) return;
@@ -19,10 +18,10 @@ const DELETED = { is_deleted: true };
 
 exports.createBank = async (req, res, next) => {
   try {
-    if (!req.file) return error(res, 'Logo image is required', 400);
+    if (!req.file) return res.status(400).json({ error: 'Logo image is required' });
     const logo = `/uploads/banks/${req.file.filename}`;
     const bank = await Bank.create({ user_id: req.user.id, name: req.body.name.trim(), logo });
-    return success(res, bank, 'Bank created successfully', 201);
+    return res.status(201).json(bank);
   } catch (err) {
     next(err);
   }
@@ -31,7 +30,7 @@ exports.createBank = async (req, res, next) => {
 exports.getBanks = async (req, res, next) => {
   try {
     const banks = await Bank.find({ user_id: req.user.id, ...ACTIVE }).sort({ createdAt: -1 });
-    return success(res, banks, 'Banks retrieved successfully');
+    return res.json(banks);
   } catch (err) {
     next(err);
   }
@@ -40,7 +39,7 @@ exports.getBanks = async (req, res, next) => {
 exports.getTrashBanks = async (req, res, next) => {
   try {
     const banks = await Bank.find({ user_id: req.user.id, ...DELETED }).sort({ deleted_at: -1 });
-    return success(res, banks, 'Trash banks retrieved successfully');
+    return res.json(banks);
   } catch (err) {
     next(err);
   }
@@ -49,7 +48,7 @@ exports.getTrashBanks = async (req, res, next) => {
 exports.updateBank = async (req, res, next) => {
   try {
     const bank = await Bank.findOne({ _id: req.params.id, user_id: req.user.id, ...ACTIVE });
-    if (!bank) return error(res, 'Bank not found', 404);
+    if (!bank) return res.status(404).json({ error: 'Bank not found' });
 
     if (req.body.name) bank.name = req.body.name.trim();
     if (req.file) {
@@ -58,7 +57,7 @@ exports.updateBank = async (req, res, next) => {
     }
 
     await bank.save();
-    return success(res, bank, 'Bank updated successfully');
+    return res.json(bank);
   } catch (err) {
     next(err);
   }
@@ -67,15 +66,15 @@ exports.updateBank = async (req, res, next) => {
 exports.deleteBank = async (req, res, next) => {
   try {
     const bank = await Bank.findOne({ _id: req.params.id, user_id: req.user.id, ...ACTIVE });
-    if (!bank) return error(res, 'Bank not found', 404);
+    if (!bank) return res.status(404).json({ error: 'Bank not found' });
 
     const inUse = await Loan.exists({ bank_id: req.params.id, user_id: req.user.id, ...ACTIVE });
-    if (inUse) return error(res, 'Bank is used in one or more loans and cannot be deleted', 400);
+    if (inUse) return res.status(400).json({ error: 'Bank is used in one or more loans and cannot be deleted' });
 
     bank.is_deleted = true;
     bank.deleted_at = new Date();
     await bank.save();
-    return success(res, null, 'Bank moved to trash');
+    return res.json({ message: 'Bank moved to trash' });
   } catch (err) {
     next(err);
   }
@@ -84,12 +83,12 @@ exports.deleteBank = async (req, res, next) => {
 exports.restoreBank = async (req, res, next) => {
   try {
     const bank = await Bank.findOne({ _id: req.params.id, user_id: req.user.id, ...DELETED });
-    if (!bank) return error(res, 'Bank not found in trash', 404);
+    if (!bank) return res.status(404).json({ error: 'Bank not found in trash' });
 
     bank.is_deleted = false;
     bank.deleted_at = null;
     await bank.save();
-    return success(res, bank, 'Bank restored successfully');
+    return res.json(bank);
   } catch (err) {
     next(err);
   }

@@ -44,17 +44,30 @@ const storage = (dest) =>
   multer.diskStorage({
     destination: (req, file, cb) => cb(null, dest),
     filename: (req, file, cb) => {
-      const ext = MIME_TO_EXT[file.mimetype] || '.jpg';
+      let ext = MIME_TO_EXT[file.mimetype];
+      // Fallback to original extension if MIME type not in map
+      if (!ext) {
+        ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+      }
       cb(null, `${randomUUID()}${ext}`);
     },
   });
 
 const imageFilter = (req, file, cb) => {
+  // Check MIME type
   if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only jpg, png, and webp image files are allowed'), false);
+    return cb(null, true);
   }
+  
+  // Fallback: check file extension if MIME type is generic/unknown
+  const ext = path.extname(file.originalname).toLowerCase();
+  const allowedExts = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.avif', '.heic', '.heif', '.bmp', '.tiff'];
+  
+  if (allowedExts.includes(ext)) {
+    return cb(null, true);
+  }
+  
+  cb(new Error(`Invalid file type. Allowed: jpg, jpeg, png, webp, gif, svg, avif, heic, heif, bmp, tiff. Received: ${file.mimetype}`), false);
 };
 
 exports.bankUpload = multer({
