@@ -70,7 +70,7 @@ const loanSchema = new mongoose.Schema(
 
 
 // ✅ AUTO CALCULATION
-loanSchema.pre('save', function (next) {
+loanSchema.pre('save', function () {
   let totalMarketValue = 0;
   let totalItems = 0;
 
@@ -97,8 +97,6 @@ loanSchema.pre('save', function (next) {
   if (!this.final_amount) {
     this.final_amount = this.loan_value;
   }
-
-  next();
 });
 
 module.exports = mongoose.model('Loan', loanSchema);
