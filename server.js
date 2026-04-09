@@ -10,6 +10,9 @@ const xss = require('xss');
 
 const app = express();
 
+// Trust proxy — required when behind reverse proxy (nginx, load balancer)
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(helmet());
 
@@ -51,6 +54,8 @@ app.use(
     windowMs: 15 * 60 * 1000,
     max: 100,
     message: { error: 'Too many requests, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false,
   })
 );
 

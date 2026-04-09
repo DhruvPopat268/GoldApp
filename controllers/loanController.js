@@ -139,7 +139,7 @@ exports.createLoan = async (req, res) => {
     }
 
     // ✅ Handle images
-    const images = req.files ? req.files.map((file) => file.path) : [];
+    const images = req.files?.item_image ? req.files.item_image.map((file) => file.path) : [];
 
     const loan = new Loan({
       user_id,
