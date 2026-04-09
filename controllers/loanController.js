@@ -107,7 +107,6 @@ const buildPDFPayload = (loan, bank, settings, baseUrl) => {
 exports.createLoan = async (req, res) => {
   try {
     const {
-      user_id,
       bank_id,
       full_name,
       dob,
@@ -124,6 +123,8 @@ exports.createLoan = async (req, res) => {
       final_amount,
       advanced_value_type,
     } = req.body;
+
+    const user_id = req.user.id; // From JWT auth middleware
 
     // ✅ Parse items
     let items = [];
