@@ -2,11 +2,16 @@ const mongoose = require('mongoose');
 
 const goldItemSchema = new mongoose.Schema({
   category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+
   gross_weight: { type: Number, required: true, min: [0.01, 'gross_weight must be positive'] },
   net_weight: { type: Number, required: true, min: [0.01, 'net_weight must be positive'] },
+
   carat: { type: Number, enum: [18, 20, 22, 24], required: true },
+
   rate_per_gram: { type: Number, required: true, min: [1, 'rate_per_gram must be positive'] },
+
   total_items: { type: Number, default: 1, min: [1, 'total_items must be at least 1'] },
+
   market_value: { type: Number },
 });
 
@@ -14,35 +19,86 @@ const loanSchema = new mongoose.Schema(
   {
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     bank_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank', required: true },
+
     full_name: { type: String, required: true, trim: true, maxlength: 150 },
     dob: { type: Date, required: true },
+
     mobile: {
       type: String,
       required: true,
       match: [/^[6-9]\d{9}$/, 'Invalid Indian mobile number'],
     },
+
     address: { type: String, required: true, trim: true, maxlength: 500 },
+
     account_number: {
       type: String,
       required: true,
       trim: true,
       match: [/^[A-Za-z0-9]{5,20}$/, 'Invalid account number format'],
     },
+
     nominee_name: { type: String, required: true, trim: true, maxlength: 150 },
     nominee_dob: { type: Date, required: true },
+
     items: {
       type: [goldItemSchema],
       validate: [(v) => v.length > 0, 'At least one item required'],
     },
+
     total_items: { type: Number, default: 0 },
+
+    // 🔥 NEW FIELDS (FROM UI)
+    gold_purity: { type: String, enum: ['18K', '20K', '22K', '24K'] },
+    market_value_per_gram: { type: Number },
+    ltv: { type: Number }, // %
+    max_permissible_limit: { type: Number },
+    final_amount: { type: Number },
+    advanced_value_type: { type: String, default: 'LTV' },
+
     total_market_value: { type: Number },
     loan_value: { type: Number },
+
     images: { type: [String] },
     pdf_path: { type: String },
+
     is_deleted: { type: Boolean, default: false, index: true },
     deleted_at: { type: Date, default: null },
   },
   { timestamps: true }
 );
+
+
+// ✅ AUTO CALCULATION
+loanSchema.pre('save', function (next) {
+  let totalMarketValue = 0;
+  let totalItems = 0;
+
+  this.items.forEach((item) => {
+    const value = item.net_weight * item.rate_per_gram * item.total_items;
+    item.market_value = value;
+
+    totalMarketValue += value;
+    totalItems += item.total_items;
+  });
+
+  this.total_items = totalItems;
+  this.total_market_value = totalMarketValue;
+
+  // 🔥 LTV logic (default 75% for 22K)
+  let ltv = this.ltv || 75;
+
+  this.loan_value = (totalMarketValue * ltv) / 100;
+
+  // 🔥 Max permissible limit
+  this.max_permissible_limit = this.loan_value;
+
+  // 🔥 Final amount fallback
+  if (!this.final_amount) {
+    this.final_amount = this.loan_value;
+  }
+
+  next();
+});
 
 module.exports = mongoose.model('Loan', loanSchema);

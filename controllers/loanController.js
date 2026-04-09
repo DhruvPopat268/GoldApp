@@ -103,10 +103,11 @@ const buildPDFPayload = (loan, bank, settings, baseUrl) => {
   return { loanForPDF, bankForPDF, settingsForPDF };
 };
 
-exports.createLoan = async (req, res, next) => {
-  const uploadedFiles = [];
+
+exports.createLoan = async (req, res) => {
   try {
     const {
+      user_id,
       bank_id,
       full_name,
       dob,
@@ -115,15 +116,33 @@ exports.createLoan = async (req, res, next) => {
       account_number,
       nominee_name,
       nominee_dob,
-      items: itemsRaw,
+
+      gold_purity,
+      market_value_per_gram,
+      ltv,
+      max_permissible_limit,
+      final_amount,
+      advanced_value_type,
     } = req.body;
 
-    if (req.files)
-      Object.values(req.files)
-        .flat()
-        .forEach((f) => uploadedFiles.push(imgUrl(f.filename)));
+    // ✅ Parse items
+    let items = [];
+    if (req.body.items) {
+      items = JSON.parse(req.body.items);
+    }
 
-    const requiredFields = {
+    if (!items.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one item required',
+      });
+    }
+
+    // ✅ Handle images
+    const images = req.files ? req.files.map((file) => file.path) : [];
+
+    const loan = new Loan({
+      user_id,
       bank_id,
       full_name,
       dob,
@@ -132,100 +151,35 @@ exports.createLoan = async (req, res, next) => {
       account_number,
       nominee_name,
       nominee_dob,
-    };
-    for (const [key, val] of Object.entries(requiredFields))
-      if (!val) return error(res, `${key} is required`, 400);
 
-    if (!MOBILE_REGEX.test(mobile))
-      return error(res, 'Invalid Indian mobile number (10 digits starting with 6-9)', 400);
-    if (!ACCOUNT_REGEX.test(account_number))
-      return error(res, 'Invalid account number format (5-20 alphanumeric characters)', 400);
+      items,
 
-    const dobDate = new Date(dob),
-      nomineeDobDate = new Date(nominee_dob),
-      today = new Date();
-    if (isNaN(dobDate.getTime()) || dobDate >= today)
-      return error(res, 'dob must be a valid past date', 400);
-    if (isNaN(nomineeDobDate.getTime()) || nomineeDobDate >= today)
-      return error(res, 'nominee_dob must be a valid past date', 400);
+      gold_purity,
+      market_value_per_gram,
+      ltv,
+      max_permissible_limit,
+      final_amount,
+      advanced_value_type,
 
-    if (!itemsRaw) return error(res, 'items is required', 400);
-    let items;
-    try {
-      items = JSON.parse(itemsRaw);
-    } catch {
-      return error(res, 'items must be a valid JSON string', 400);
-    }
-    if (!Array.isArray(items) || items.length === 0)
-      return error(res, 'At least one gold item is required', 400);
-
-    if (!mongoose.Types.ObjectId.isValid(bank_id)) return error(res, 'Invalid bank_id', 400);
-    const bank = await Bank.findOne({ _id: bank_id, user_id: req.user.id, ...ACTIVE });
-    if (!bank) return error(res, 'Bank not found', 404);
-
-    // Load user settings — apply default_rate to items missing rate_per_gram
-    const settings = await Settings.findOne({ user_id: req.user.id });
-    if (settings?.default_rate) {
-      items = items.map((item) => ({
-        ...item,
-        rate_per_gram: item.rate_per_gram || settings.default_rate,
-      }));
-    }
-
-    const processedItems = await processItems(items, req.user.id);
-    const total_market_value = parseFloat(
-      processedItems.reduce((s, i) => s + i.market_value, 0).toFixed(2)
-    );
-    const total_items = processedItems.reduce((s, i) => s + i.total_items, 0);
-    const loan_value = parseFloat((total_market_value * 0.75).toFixed(2));
-
-    const allImages =
-      req.files && req.files['item_image']
-        ? req.files['item_image'].map((f) => imgUrl(f.filename))
-        : [];
-
-    const loan = await Loan.create({
-      user_id: req.user.id,
-      bank_id,
-      full_name,
-      dob: dobDate,
-      mobile,
-      address,
-      account_number,
-      nominee_name,
-      nominee_dob: nomineeDobDate,
-      items: processedItems,
-      total_items,
-      total_market_value,
-      loan_value,
-      images: allImages,
+      images,
     });
 
-    const categories = await Category.find({ user_id: req.user.id, ...ACTIVE });
-    const baseUrl = BASE_URL();
-    const { loanForPDF, bankForPDF, settingsForPDF } = buildPDFPayload(
-      loan,
-      bank,
-      settings,
-      baseUrl
-    );
-
-    const pdfUrl = await generatePDF(loanForPDF, bankForPDF, categories, settingsForPDF);
-    loan.pdf_path = pdfUrl;
     await loan.save();
 
-    return success(
-      res,
-      { ...loan.toObject(), pdf_url: pdfUrl, total_items },
-      'Loan created successfully',
-      201
-    );
-  } catch (err) {
-    uploadedFiles.forEach(deleteFile);
-    next(err);
+    return res.status(201).json({
+      success: true,
+      message: 'Loan created successfully',
+      data: loan,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
   }
 };
-
 exports.getLoans = async (req, res, next) => {
   try {
     const loans = await Loan.find({ user_id: req.user.id, ...ACTIVE })
