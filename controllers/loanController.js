@@ -129,7 +129,14 @@ exports.createLoan = async (req, res) => {
     // ✅ Parse items
     let items = [];
     if (req.body.items) {
-      items = JSON.parse(req.body.items);
+      try {
+        items = JSON.parse(req.body.items);
+      } catch (e) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid items JSON format',
+        });
+      }
     }
 
     if (!items.length) {
@@ -172,8 +179,18 @@ exports.createLoan = async (req, res) => {
       message: 'Loan created successfully',
       data: loan,
     });
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error('Create loan error:', err);
+
+    // Handle Mongoose validation errors
+    if (err.name === 'ValidationError') {
+      const errors = Object.values(err.errors).map(e => e.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors,
+      });
+    }
 
     return res.status(500).json({
       success: false,
