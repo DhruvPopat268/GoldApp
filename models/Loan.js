@@ -98,13 +98,11 @@ loanSchema.pre('save', function () {
   // 🔥 LTV logic (default 75%)
   const ltv = this.ltv || 75;
 
-  // NEW: max_permissible_limit - Use user input if provided, otherwise calculate
-  if (!this.max_permissible_limit) {
-    this.max_permissible_limit = parseFloat((totalMarketValue * (ltv / 100)).toFixed(2));
-  }
+  // max_permissible_limit - ONLY user input, no auto-calculation
+  // User must provide this value
 
   // loan_value calculation (same as max_permissible_limit)
-  this.loan_value = this.max_permissible_limit;
+  this.loan_value = this.max_permissible_limit || 0;
 
   // 🔥 Final amount fallback
   if (!this.final_amount) {
