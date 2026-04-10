@@ -115,7 +115,6 @@ exports.createLoan = async (req, res) => {
       account_number,
       nominee_name,
       nominee_dob,
-
       gold_purity,
       market_value_per_gram,
       ltv,

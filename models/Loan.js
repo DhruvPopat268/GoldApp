@@ -12,6 +12,8 @@ const goldItemSchema = new mongoose.Schema({
 
   total_items: { type: Number, default: 1, min: [1, 'total_items must be at least 1'] },
 
+  item_note: { type: String, trim: true, maxlength: 500 }, // NEW: Optional comment per item
+
   market_value: { type: Number },
 });
 
@@ -52,7 +54,8 @@ const loanSchema = new mongoose.Schema(
     gold_purity: { type: String, enum: ['18K', '20K', '22K', '24K'] },
     market_value_per_gram: { type: Number },
     ltv: { type: Number }, // %
-    max_permissible_limit: { type: Number },
+    max_permissible_limit: { type: Number }, // Calculated: total_market_value * (ltv / 100)
+    market_value_for_gold: { type: Number }, // Same as total_market_value
     final_amount: { type: Number },
     advanced_value_type: { type: String, default: 'LTV' },
 
@@ -75,23 +78,29 @@ loanSchema.pre('save', function () {
   let totalItems = 0;
 
   this.items.forEach((item) => {
-    const value = item.net_weight * item.rate_per_gram * item.total_items;
-    item.market_value = value;
+    // Calculate market value per item: net_weight * rate_per_gram
+    const value = item.net_weight * item.rate_per_gram;
+    item.market_value = parseFloat(value.toFixed(2));
 
-    totalMarketValue += value;
+    // Sum up total market value and total items
+    totalMarketValue += value * item.total_items;
     totalItems += item.total_items;
   });
 
   this.total_items = totalItems;
-  this.total_market_value = totalMarketValue;
+  this.total_market_value = parseFloat(totalMarketValue.toFixed(2));
+  
+  // NEW: market_value_for_gold = total_market_value
+  this.market_value_for_gold = this.total_market_value;
 
-  // 🔥 LTV logic (default 75% for 22K)
-  let ltv = this.ltv || 75;
+  // 🔥 LTV logic (default 75%)
+  const ltv = this.ltv || 75;
 
-  this.loan_value = (totalMarketValue * ltv) / 100;
+  // NEW: max_permissible_limit = total_market_value * (ltv / 100)
+  this.max_permissible_limit = parseFloat((totalMarketValue * (ltv / 100)).toFixed(2));
 
-  // 🔥 Max permissible limit
-  this.max_permissible_limit = this.loan_value;
+  // loan_value calculation (same as max_permissible_limit)
+  this.loan_value = this.max_permissible_limit;
 
   // 🔥 Final amount fallback
   if (!this.final_amount) {
