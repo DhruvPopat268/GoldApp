@@ -1,0 +1,615 @@
+{
+  "info": {
+    "name": "Gold Loan Management API - Complete Collection",
+    "description": "Complete API collection for testing Gold Loan Management System with all new fields",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bank_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "category_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "loan_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Signup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token', jsonData.token);",
+                  "    pm.collectionVariables.set('user_id', jsonData.user.id);",
+                  "    console.log('Token saved:', jsonData.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/signup",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "signup"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token', jsonData.token);",
+                  "    pm.collectionVariables.set('user_id', jsonData.user.id);",
+                  "    console.log('Token saved:', jsonData.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Banks",
+      "item": [
+        {
+          "name": "Create Bank",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('bank_id', jsonData._id);",
+                  "    console.log('Bank ID saved:', jsonData._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "State Bank of India",
+                  "type": "text"
+                },
+                {
+                  "key": "logo",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/banks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "banks"]
+            }
+          }
+        },
+        {
+          "name": "Get All Banks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/banks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "banks"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Categories",
+      "item": [
+        {
+          "name": "Create Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('category_id', jsonData._id);",
+                  "    console.log('Category ID saved:', jsonData._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Necklace\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/categories",
+              "host": ["{{base_url}}"],
+              "path": ["api", "categories"]
+            }
+          }
+        },
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/categories",
+              "host": ["{{base_url}}"],
+              "path": ["api", "categories"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Loans",
+      "item": [
+        {
+          "name": "Create Loan - Single Item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('loan_id', jsonData.data._id);",
+                  "    console.log('Loan ID saved:', jsonData.data._id);",
+                  "    console.log('Total Market Value:', jsonData.data.total_market_value_display);",
+                  "    console.log('Max Permissible Limit:', jsonData.data.max_permissible_limit_display);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "bank_id",
+                  "value": "{{bank_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "full_name",
+                  "value": "Ramesh Kumar",
+                  "type": "text"
+                },
+                {
+                  "key": "dob",
+                  "value": "1985-06-15",
+                  "type": "text"
+                },
+                {
+                  "key": "mobile",
+                  "value": "9876543210",
+                  "type": "text"
+                },
+                {
+                  "key": "address",
+                  "value": "123 Main Street, Chennai, Tamil Nadu",
+                  "type": "text"
+                },
+                {
+                  "key": "account_number",
+                  "value": "SBI0012345678",
+                  "type": "text"
+                },
+                {
+                  "key": "nominee_name",
+                  "value": "Suresh Kumar",
+                  "type": "text"
+                },
+                {
+                  "key": "nominee_dob",
+                  "value": "2005-03-20",
+                  "type": "text"
+                },
+                {
+                  "key": "ltv",
+                  "value": "75",
+                  "type": "text"
+                },
+                {
+                  "key": "items",
+                  "value": "[{\"category_id\":\"{{category_id}}\",\"gross_weight\":12.5,\"net_weight\":11.8,\"carat\":22,\"rate_per_gram\":5800,\"total_items\":1,\"item_note\":\"Customer gold necklace\"}]",
+                  "type": "text"
+                },
+                {
+                  "key": "item_image",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/loans",
+              "host": ["{{base_url}}"],
+              "path": ["api", "loans"]
+            }
+          }
+        },
+        {
+          "name": "Create Loan - Multiple Items",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log('Total Items:', jsonData.data.total_items);",
+                  "    console.log('Total Market Value:', jsonData.data.total_market_value_display);",
+                  "    console.log('Market Value for Gold:', jsonData.data.market_value_for_gold_display);",
+                  "    console.log('Max Permissible Limit:', jsonData.data.max_permissible_limit_display);",
+                  "    console.log('Loan Value:', jsonData.data.loan_value_display);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "bank_id",
+                  "value": "{{bank_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "full_name",
+                  "value": "Priya Sharma",
+                  "type": "text"
+                },
+                {
+                  "key": "dob",
+                  "value": "1990-08-20",
+                  "type": "text"
+                },
+                {
+                  "key": "mobile",
+                  "value": "9123456789",
+                  "type": "text"
+                },
+                {
+                  "key": "address",
+                  "value": "456 Park Avenue, Mumbai, Maharashtra",
+                  "type": "text"
+                },
+                {
+                  "key": "account_number",
+                  "value": "HDFC9876543210",
+                  "type": "text"
+                },
+                {
+                  "key": "nominee_name",
+                  "value": "Raj Sharma",
+                  "type": "text"
+                },
+                {
+                  "key": "nominee_dob",
+                  "value": "2010-05-15",
+                  "type": "text"
+                },
+                {
+                  "key": "ltv",
+                  "value": "80",
+                  "type": "text"
+                },
+                {
+                  "key": "items",
+                  "value": "[{\"category_id\":\"{{category_id}}\",\"gross_weight\":12.5,\"net_weight\":11.8,\"carat\":22,\"rate_per_gram\":5800,\"total_items\":2,\"item_note\":\"Gold necklace set with intricate design\"},{\"category_id\":\"{{category_id}}\",\"gross_weight\":8.0,\"net_weight\":7.5,\"carat\":24,\"rate_per_gram\":6200,\"total_items\":1,\"item_note\":\"Wedding ring - 24K pure gold\"}]",
+                  "type": "text"
+                },
+                {
+                  "key": "item_image",
+                  "type": "file",
+                  "src": ""
+                },
+                {
+                  "key": "item_image",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/loans",
+              "host": ["{{base_url}}"],
+              "path": ["api", "loans"]
+            }
+          }
+        },
+        {
+          "name": "Get All Loans",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/loans",
+              "host": ["{{base_url}}"],
+              "path": ["api", "loans"]
+            }
+          }
+        },
+        {
+          "name": "Get Loan by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/loans/{{loan_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "loans", "{{loan_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Loans History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/loans/history?from=2024-01-01&to=2024-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "loans", "history"],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2024-12-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Loans by Date",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"15-01-2024\",\n  \"bankId\": \"{{bank_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/loans/by-date",
+              "host": ["{{base_url}}"],
+              "path": ["api", "loans", "by-date"]
+            }
+          }
+        },
+        {
+          "name": "Get Loans Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/loans/summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "loans", "summary"]
+            }
+          }
+        },
+        {
+          "name": "Regenerate PDF",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/loans/{{loan_id}}/regenerate-pdf",
+              "host": ["{{base_url}}"],
+              "path": ["api", "loans", "{{loan_id}}", "regenerate-pdf"]
+            }
+          }
+        },
+        {
+          "name": "Delete Loan (Move to Trash)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/loans/{{loan_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "loans", "{{loan_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Trash Loans",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/loans/trash",
+              "host": ["{{base_url}}"],
+              "path": ["api", "loans", "trash"]
+            }
+          }
+        },
+        {
+          "name": "Restore Loan",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/loans/{{loan_id}}/restore",
+              "host": ["{{base_url}}"],
+              "path": ["api", "loans", "{{loan_id}}", "restore"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

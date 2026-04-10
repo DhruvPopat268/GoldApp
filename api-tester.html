@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gold Loan API Tester</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        textarea {
+            min-height: 100px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff;
+            border-radius: 6px;
+            border: 2px solid #e0e0e0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .response pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #333;
+        }
+        
+        .success {
+            border-color: #4caf50;
+            background: #f1f8f4;
+        }
+        
+        .error {
+            border-color: #f44336;
+            background: #fef5f5;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        
+        .info-box strong {
+            color: #1976d2;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .status.success {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .status.error {
+            background: #f44336;
+            color: white;
+        }
+        
+        .status.pending {
+            background: #ff9800;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏆 Gold Loan API Tester</h1>
+        <p class="subtitle">Test all Gold Loan Management APIs with new fields</p>
+        
+        <div class="info-box">
+            <strong>Base URL:</strong> <span id="baseUrl">http://localhost:5000</span><br>
+            <strong>Status:</strong> <span class="status pending" id="status">Not Connected</span>
+        </div>
+        
+        <!-- Authentication -->
+        <div class="section">
+            <h2>1. Authentication</h2>
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" id="email" value="test@example.com">
+            </div>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" id="password" value="password123">
+            </div>
+            <button onclick="login()">Login</button>
+            <button onclick="signup()">Signup</button>
+            <div id="authResponse" class="response" style="display:none;"></div>
+        </div>
+        
+        <!-- Create Loan -->
+        <div class="section">
+            <h2>2. Create Loan (Single Item)</h2>
+            <div class="grid">
+                <div class="form-group">
+                    <label>Bank ID:</label>
+                    <input type="text" id="bankId" placeholder="Enter bank ID">
+                </div>
+                <div class="form-group">
+                    <label>Category ID:</label>
+                    <input type="text" id="categoryId" placeholder="Enter category ID">
+                </div>
+            </div>
+            <div class="grid">
+                <div class="form-group">
+                    <label>Full Name:</label>
+                    <input type="text" id="fullName" value="Ramesh Kumar">
+                </div>
+                <div class="form-group">
+                    <label>Mobile:</label>
+                    <input type="text" id="mobile" value="9876543210">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>LTV (%):</label>
+                <input type="number" id="ltv" value="75">
+            </div>
+            <div class="form-group">
+                <label>Items JSON:</label>
+                <textarea id="items">[{
+  "category_id": "CATEGORY_ID_HERE",
+  "gross_weight": 12.5,
+  "net_weight": 11.8,
+  "carat": 22,
+  "rate_per_gram": 5800,
+  "total_items": 1,
+  "item_note": "Customer gold necklace"
+}]</textarea>
+            </div>
+            <button onclick="createLoan()">Create Loan</button>
+            <div id="loanResponse" class="response" style="display:none;"></div>
+        </div>
+        
+        <!-- Get Loans -->
+        <div class="section">
+            <h2>3. Get All Loans</h2>
+            <button onclick="getAllLoans()">Get All Loans</button>
+            <div id="loansResponse" class="response" style="display:none;"></div>
+        </div>
+        
+        <!-- Get Loan by ID -->
+        <div class="section">
+            <h2>4. Get Loan by ID</h2>
+            <div class="form-group">
+                <label>Loan ID:</label>
+                <input type="text" id="loanId" placeholder="Enter loan ID">
+            </div>
+            <button onclick="getLoanById()">Get Loan</button>
+            <div id="singleLoanResponse" class="response" style="display:none;"></div>
+        </div>
+        
+        <!-- Field Verification -->
+        <div class="section">
+            <h2>5. Field Verification</h2>
+            <button onclick="verifyFields()">Verify New Fields</button>
+            <div id="verifyResponse" class="response" style="display:none;"></div>
+        </div>
+    </div>
+    
+    <script>
+        const BASE_URL = 'http://localhost:5000';
+        let token = '';
+        
+        // Update status
+        function updateStatus(success) {
+            const statusEl = document.getElementById('status');
+            if (success) {
+                statusEl.textContent = 'Connected';
+                statusEl.className = 'status success';
+            } else {
+                statusEl.textContent = 'Error';
+                statusEl.className = 'status error';
+            }
+        }
+        
+        // Display response
+        function displayResponse(elementId, data, isError = false) {
+            const el = document.getElementById(elementId);
+            el.style.display = 'block';
+            el.className = 'response ' + (isError ? 'error' : 'success');
+            el.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        }
+        
+        // Login
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    token = data.token;
+                    updateStatus(true);
+                    displayResponse('authResponse', data);
+                    alert('Login successful! Token saved.');
+                } else {
+                    updateStatus(false);
+                    displayResponse('authResponse', data, true);
+                }
+            } catch (error) {
+                updateStatus(false);
+                displayResponse('authResponse', { error: error.message }, true);
+            }
+        }
+        
+        // Signup
+        async function signup() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name: 'Test User',
+                        email, 
+                        password 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    token = data.token;
+                    updateStatus(true);
+                    displayResponse('authResponse', data);
+                    alert('Signup successful! Token saved.');
+                } else {
+                    displayResponse('authResponse', data, true);
+                }
+            } catch (error) {
+                displayResponse('authResponse', { error: error.message }, true);
+            }
+        }
+        
+        // Create Loan
+        async function createLoan() {
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+            
+            const bankId = document.getElementById('bankId').value;
+            const categoryId = document.getElementById('categoryId').value;
+            const fullName = document.getElementById('fullName').value;
+            const mobile = document.getElementById('mobile').value;
+            const ltv = document.getElementById('ltv').value;
+            let items = document.getElementById('items').value;
+            
+            // Replace placeholder with actual category ID
+            items = items.replace('CATEGORY_ID_HERE', categoryId);
+            
+            const formData = new FormData();
+            formData.append('bank_id', bankId);
+            formData.append('full_name', fullName);
+            formData.append('dob', '1985-06-15');
+            formData.append('mobile', mobile);
+            formData.append('address', '123 Main Street, Chennai');
+            formData.append('account_number', 'SBI0012345678');
+            formData.append('nominee_name', 'Suresh Kumar');
+            formData.append('nominee_dob', '2005-03-20');
+            formData.append('ltv', ltv);
+            formData.append('items', items);
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/loans`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                displayResponse('loanResponse', data, !response.ok);
+                
+                if (response.ok && data.data._id) {
+                    document.getElementById('loanId').value = data.data._id;
+                }
+            } catch (error) {
+                displayResponse('loanResponse', { error: error.message }, true);
+            }
+        }
+        
+        // Get All Loans
+        async function getAllLoans() {
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/loans`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await response.json();
+                displayResponse('loansResponse', data, !response.ok);
+            } catch (error) {
+                displayResponse('loansResponse', { error: error.message }, true);
+            }
+        }
+        
+        // Get Loan by ID
+        async function getLoanById() {
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+            
+            const loanId = document.getElementById('loanId').value;
+            if (!loanId) {
+                alert('Please enter a loan ID!');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/loans/${loanId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await response.json();
+                displayResponse('singleLoanResponse', data, !response.ok);
+            } catch (error) {
+                displayResponse('singleLoanResponse', { error: error.message }, true);
+            }
+        }
+        
+        // Verify Fields
+        async function verifyFields() {
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+            
+            const loanId = document.getElementById('loanId').value;
+            if (!loanId) {
+                alert('Please enter a loan ID first!');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/loans/${loanId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    const loan = data.data;
+                    const verification = {
+                        "✅ Fields Present": {
+                            "item_note": loan.items[0]?.item_note || "NOT FOUND",
+                            "market_value_for_gold": loan.market_value_for_gold,
+                            "market_value_for_gold_display": loan.market_value_for_gold_display,
+                            "max_permissible_limit": loan.max_permissible_limit,
+                            "max_permissible_limit_display": loan.max_permissible_limit_display,
+                            "loan_value_display": loan.loan_value_display,
+                            "rate_per_gram_display": loan.items[0]?.rate_per_gram_display
+                        },
+                        "📊 Calculations": {
+                            "Total Items": loan.total_items,
+                            "Total Market Value": loan.total_market_value_display,
+                            "LTV": loan.ltv + "%",
+                            "Max Limit": loan.max_permissible_limit_display,
+                            "Loan Value": loan.loan_value_display
+                        }
+                    };
+                    
+                    displayResponse('verifyResponse', verification);
+                } else {
+                    displayResponse('verifyResponse', data, true);
+                }
+            } catch (error) {
+                displayResponse('verifyResponse', { error: error.message }, true);
+            }
+        }
+    </script>
+</body>
+</html>

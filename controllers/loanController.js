@@ -41,7 +41,7 @@ const imgUrl = (filename) => {
 const processItems = async (items, userId, existingItems = []) => {
   const processed = [];
   for (let i = 0; i < items.length; i++) {
-    const { category_id, gross_weight, net_weight, carat, rate_per_gram, total_items } = items[i];
+    const { category_id, gross_weight, net_weight, carat, rate_per_gram, total_items, item_note } = items[i];
 
     if (!category_id || !gross_weight || !net_weight || !carat || !rate_per_gram)
       throw { status: 400, message: `Item ${i + 1}: all fields are required` };
@@ -78,6 +78,7 @@ const processItems = async (items, userId, existingItems = []) => {
       carat: ct,
       rate_per_gram: rpg,
       total_items: ti,
+      item_note: item_note || '', // Include item_note
       market_value: parseFloat((nw * rpg).toFixed(2)),
     });
   }
@@ -173,10 +174,33 @@ exports.createLoan = async (req, res) => {
 
     await loan.save();
 
+    // Populate category names for response
+    await loan.populate('bank_id', 'name logo');
+    await loan.populate('items.category_id', 'name');
+
+    // Format currency values for display
+    const formatCurrency = (num) => `₹${Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    const responseData = loan.toObject();
+    
+    // Add formatted display values
+    responseData.total_market_value_display = formatCurrency(loan.total_market_value);
+    responseData.market_value_for_gold_display = formatCurrency(loan.market_value_for_gold);
+    responseData.max_permissible_limit_display = formatCurrency(loan.max_permissible_limit);
+    responseData.loan_value_display = formatCurrency(loan.loan_value);
+    responseData.final_amount_display = formatCurrency(loan.final_amount);
+    
+    // Add formatted values for each item
+    responseData.items = responseData.items.map(item => ({
+      ...item,
+      market_value_display: formatCurrency(item.market_value),
+      rate_per_gram_display: formatCurrency(item.rate_per_gram),
+    }));
+
     return res.status(201).json({
       success: true,
       message: 'Loan created successfully',
-      data: loan,
+      data: responseData,
     });
   } catch (err) {
     console.error('Create loan error:', err);
@@ -199,15 +223,32 @@ exports.createLoan = async (req, res) => {
 };
 exports.getLoans = async (req, res, next) => {
   try {
+    const formatCurrency = (num) => `₹${Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    
     const loans = await Loan.find({ user_id: req.user.id, ...ACTIVE })
       .populate('bank_id', 'name logo')
       .populate('items.category_id', 'name')
       .sort({ createdAt: -1 });
-    return success(
-      res,
-      loans.map((l) => ({ ...l.toObject(), pdf_url: l.pdf_path || null })),
-      'Loans retrieved successfully'
-    );
+    
+    const formattedLoans = loans.map((l) => {
+      const loanObj = l.toObject();
+      return {
+        ...loanObj,
+        pdf_url: l.pdf_path || null,
+        total_market_value_display: formatCurrency(l.total_market_value),
+        market_value_for_gold_display: formatCurrency(l.market_value_for_gold),
+        max_permissible_limit_display: formatCurrency(l.max_permissible_limit),
+        loan_value_display: formatCurrency(l.loan_value),
+        final_amount_display: formatCurrency(l.final_amount),
+        items: loanObj.items.map(item => ({
+          ...item,
+          market_value_display: formatCurrency(item.market_value),
+          rate_per_gram_display: formatCurrency(item.rate_per_gram),
+        })),
+      };
+    });
+    
+    return success(res, formattedLoans, 'Loans retrieved successfully');
   } catch (err) {
     next(err);
   }
@@ -234,16 +275,32 @@ exports.getLoansHistory = async (req, res, next) => {
       }
     }
 
+    const formatCurrency = (num) => `₹${Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
     const loans = await Loan.find(filter)
       .populate('bank_id', 'name logo')
       .populate('items.category_id', 'name')
       .sort({ createdAt: -1 });
 
-    return success(
-      res,
-      loans.map((l) => ({ ...l.toObject(), pdf_url: l.pdf_path || null })),
-      'Loan history retrieved successfully'
-    );
+    const formattedLoans = loans.map((l) => {
+      const loanObj = l.toObject();
+      return {
+        ...loanObj,
+        pdf_url: l.pdf_path || null,
+        total_market_value_display: formatCurrency(l.total_market_value),
+        market_value_for_gold_display: formatCurrency(l.market_value_for_gold),
+        max_permissible_limit_display: formatCurrency(l.max_permissible_limit),
+        loan_value_display: formatCurrency(l.loan_value),
+        final_amount_display: formatCurrency(l.final_amount),
+        items: loanObj.items.map(item => ({
+          ...item,
+          market_value_display: formatCurrency(item.market_value),
+          rate_per_gram_display: formatCurrency(item.rate_per_gram),
+        })),
+      };
+    });
+
+    return success(res, formattedLoans, 'Loan history retrieved successfully');
   } catch (err) {
     next(err);
   }
@@ -345,11 +402,26 @@ exports.getLoanById = async (req, res, next) => {
       .populate('bank_id', 'name logo')
       .populate('items.category_id', 'name');
     if (!loan) return error(res, 'Loan not found', 404);
-    return success(
-      res,
-      { ...loan.toObject(), pdf_url: loan.pdf_path || null },
-      'Loan retrieved successfully'
-    );
+    
+    const formatCurrency = (num) => `₹${Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    
+    const loanObj = loan.toObject();
+    const responseData = {
+      ...loanObj,
+      pdf_url: loan.pdf_path || null,
+      total_market_value_display: formatCurrency(loan.total_market_value),
+      market_value_for_gold_display: formatCurrency(loan.market_value_for_gold),
+      max_permissible_limit_display: formatCurrency(loan.max_permissible_limit),
+      loan_value_display: formatCurrency(loan.loan_value),
+      final_amount_display: formatCurrency(loan.final_amount),
+      items: loanObj.items.map(item => ({
+        ...item,
+        market_value_display: formatCurrency(item.market_value),
+        rate_per_gram_display: formatCurrency(item.rate_per_gram),
+      })),
+    };
+    
+    return success(res, responseData, 'Loan retrieved successfully');
   } catch (err) {
     next(err);
   }
@@ -533,6 +605,8 @@ exports.getLoansByDate = async (req, res, next) => {
 
     console.log('Filter applied:', JSON.stringify(filter));
 
+    const formatCurrency = (num) => `₹${Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
     // Get all loans matching user and optional bankId
     const allLoans = await Loan.find(filter)
       .populate('bank_id', 'name logo')
@@ -557,11 +631,25 @@ exports.getLoansByDate = async (req, res, next) => {
     console.log('Filtered loans count:', filteredLoans.length);
     console.log('=== End Debug ===');
 
-    return success(
-      res,
-      filteredLoans.map((l) => ({ ...l.toObject(), pdf_url: l.pdf_path || null })),
-      'Loans retrieved successfully'
-    );
+    const formattedLoans = filteredLoans.map((l) => {
+      const loanObj = l.toObject();
+      return {
+        ...loanObj,
+        pdf_url: l.pdf_path || null,
+        total_market_value_display: formatCurrency(l.total_market_value),
+        market_value_for_gold_display: formatCurrency(l.market_value_for_gold),
+        max_permissible_limit_display: formatCurrency(l.max_permissible_limit),
+        loan_value_display: formatCurrency(l.loan_value),
+        final_amount_display: formatCurrency(l.final_amount),
+        items: loanObj.items.map(item => ({
+          ...item,
+          market_value_display: formatCurrency(item.market_value),
+          rate_per_gram_display: formatCurrency(item.rate_per_gram),
+        })),
+      };
+    });
+
+    return success(res, formattedLoans, 'Loans retrieved successfully');
   } catch (err) {
     next(err);
   }

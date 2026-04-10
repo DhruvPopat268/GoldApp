@@ -93,7 +93,11 @@ item_image: <file2.jpg>
   "data": {
     "_id": "507f1f77bcf86cd799439014",
     "user_id": "507f1f77bcf86cd799439010",
-    "bank_id": "507f1f77bcf86cd799439011",
+    "bank_id": {
+      "_id": "507f1f77bcf86cd799439011",
+      "name": "State Bank of India",
+      "logo": "/uploads/banks/uuid.png"
+    },
     "full_name": "Ramesh Kumar",
     "dob": "1985-06-15T00:00:00.000Z",
     "mobile": "9876543210",
@@ -104,34 +108,49 @@ item_image: <file2.jpg>
     "ltv": 80,
     "items": [
       {
-        "category_id": "507f1f77bcf86cd799439012",
+        "category_id": {
+          "_id": "507f1f77bcf86cd799439012",
+          "name": "Necklace"
+        },
         "gross_weight": 12.5,
         "net_weight": 11.8,
         "carat": 22,
         "rate_per_gram": 5800,
+        "rate_per_gram_display": "₹5,800.00",
         "total_items": 2,
         "item_note": "Gold necklace with intricate design",
         "market_value": 68440.00,
+        "market_value_display": "₹68,440.00",
         "_id": "507f1f77bcf86cd799439015"
       },
       {
-        "category_id": "507f1f77bcf86cd799439013",
+        "category_id": {
+          "_id": "507f1f77bcf86cd799439013",
+          "name": "Ring"
+        },
         "gross_weight": 8.0,
         "net_weight": 7.5,
         "carat": 24,
         "rate_per_gram": 6200,
+        "rate_per_gram_display": "₹6,200.00",
         "total_items": 1,
         "item_note": "Wedding ring - 24K pure gold",
         "market_value": 46500.00,
+        "market_value_display": "₹46,500.00",
         "_id": "507f1f77bcf86cd799439016"
       }
     ],
     "total_items": 3,
     "total_market_value": 183380.00,
+    "total_market_value_display": "₹1,83,380.00",
     "market_value_for_gold": 183380.00,
+    "market_value_for_gold_display": "₹1,83,380.00",
     "max_permissible_limit": 146704.00,
+    "max_permissible_limit_display": "₹1,46,704.00",
     "loan_value": 146704.00,
+    "loan_value_display": "₹1,46,704.00",
     "final_amount": 146704.00,
+    "final_amount_display": "₹1,46,704.00",
     "images": [
       "/uploads/gold_items/uuid1.jpg",
       "/uploads/gold_items/uuid2.jpg"
@@ -143,6 +162,26 @@ item_image: <file2.jpg>
   }
 }
 ```
+
+### Key Response Fields
+
+**Numeric Values (for calculations):**
+- `total_market_value`: 183380.00
+- `market_value_for_gold`: 183380.00
+- `max_permissible_limit`: 146704.00
+- `loan_value`: 146704.00
+- `final_amount`: 146704.00
+
+**Display Values (formatted with ₹ symbol):**
+- `total_market_value_display`: "₹1,83,380.00"
+- `market_value_for_gold_display`: "₹1,83,380.00"
+- `max_permissible_limit_display`: "₹1,46,704.00"
+- `loan_value_display`: "₹1,46,704.00"
+- `final_amount_display`: "₹1,46,704.00"
+
+**Per Item Display Values:**
+- `rate_per_gram_display`: "₹5,800.00"
+- `market_value_display`: "₹68,440.00"
 
 ---
 
