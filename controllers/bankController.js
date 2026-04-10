@@ -21,7 +21,10 @@ exports.createBank = async (req, res, next) => {
     if (!req.file) return res.status(400).json({ error: 'Logo image is required' });
     const logo = `/uploads/banks/${req.file.filename}`;
     const bank = await Bank.create({ user_id: req.user.id, name: req.body.name.trim(), logo });
-    return res.status(201).json(bank);
+    return res.status(201).json({
+      ...bank.toObject(),
+      logo_url: `${process.env.BASE_URL}${bank.logo}`
+    });
   } catch (err) {
     next(err);
   }
@@ -30,7 +33,11 @@ exports.createBank = async (req, res, next) => {
 exports.getBanks = async (req, res, next) => {
   try {
     const banks = await Bank.find({ user_id: req.user.id, ...ACTIVE }).sort({ createdAt: -1 });
-    return res.json(banks);
+    const banksWithUrl = banks.map(bank => ({
+      ...bank.toObject(),
+      logo_url: `${process.env.BASE_URL}${bank.logo}`
+    }));
+    return res.json(banksWithUrl);
   } catch (err) {
     next(err);
   }
@@ -39,7 +46,11 @@ exports.getBanks = async (req, res, next) => {
 exports.getTrashBanks = async (req, res, next) => {
   try {
     const banks = await Bank.find({ user_id: req.user.id, ...DELETED }).sort({ deleted_at: -1 });
-    return res.json(banks);
+    const banksWithUrl = banks.map(bank => ({
+      ...bank.toObject(),
+      logo_url: `${process.env.BASE_URL}${bank.logo}`
+    }));
+    return res.json(banksWithUrl);
   } catch (err) {
     next(err);
   }
@@ -57,7 +68,10 @@ exports.updateBank = async (req, res, next) => {
     }
 
     await bank.save();
-    return res.json(bank);
+    return res.json({
+      ...bank.toObject(),
+      logo_url: `${process.env.BASE_URL}${bank.logo}`
+    });
   } catch (err) {
     next(err);
   }
@@ -88,7 +102,10 @@ exports.restoreBank = async (req, res, next) => {
     bank.is_deleted = false;
     bank.deleted_at = null;
     await bank.save();
-    return res.json(bank);
+    return res.json({
+      ...bank.toObject(),
+      logo_url: `${process.env.BASE_URL}${bank.logo}`
+    });
   } catch (err) {
     next(err);
   }

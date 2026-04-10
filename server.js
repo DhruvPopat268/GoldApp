@@ -59,13 +59,18 @@ app.use(
   })
 );
 
-// Static files
+// Static files with error handling
 if (process.env.NODE_ENV === 'production') {
   app.use('/cloud/images', express.static('/app/cloud/images'));
   app.use('/cloud/documents', express.static('/app/cloud/documents'));
 } else {
   app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 }
+
+// Handle missing static files
+app.use('/uploads', (req, res) => {
+  res.status(404).json({ error: 'File not found' });
+});
 
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/banks', require('./routes/bankRoutes'));
