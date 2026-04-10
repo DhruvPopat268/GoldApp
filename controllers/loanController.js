@@ -174,7 +174,36 @@ exports.createLoan = async (req, res) => {
 
     await loan.save();
 
-    // Populate category names for response
+    // Generate PDF after saving loan
+    const bank = await Bank.findById(loan.bank_id);
+    if (!bank) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bank not found',
+      });
+    }
+
+    const settings = await Settings.findOne({ user_id: req.user.id });
+    const categories = await Category.find({ user_id: req.user.id, ...ACTIVE });
+    const baseUrl = BASE_URL();
+    
+    // Populate for PDF generation
+    await loan.populate('bank_id', 'name logo');
+    await loan.populate('items.category_id', 'name');
+    
+    const { loanForPDF, bankForPDF, settingsForPDF } = buildPDFPayload(
+      loan,
+      bank,
+      settings,
+      baseUrl
+    );
+
+    // Generate PDF
+    const pdfUrl = await generatePDF(loanForPDF, bankForPDF, categories, settingsForPDF);
+    loan.pdf_path = pdfUrl;
+    await loan.save();
+
+    // Reload loan to get updated pdf_path
     await loan.populate('bank_id', 'name logo');
     await loan.populate('items.category_id', 'name');
 
@@ -185,6 +214,9 @@ exports.createLoan = async (req, res) => {
     };
 
     const responseData = loan.toObject();
+    
+    // Add pdf_url to response
+    responseData.pdf_url = loan.pdf_path || null;
     
     // Add formatted display values
     responseData.total_market_value_display = formatCurrency(loan.total_market_value);
