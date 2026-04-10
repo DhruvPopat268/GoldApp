@@ -179,7 +179,10 @@ exports.createLoan = async (req, res) => {
     await loan.populate('items.category_id', 'name');
 
     // Format currency values for display
-    const formatCurrency = (num) => `₹${Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const formatCurrency = (num) => {
+      if (!num && num !== 0) return '₹0.00';
+      return `₹${Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
 
     const responseData = loan.toObject();
     
@@ -223,7 +226,10 @@ exports.createLoan = async (req, res) => {
 };
 exports.getLoans = async (req, res, next) => {
   try {
-    const formatCurrency = (num) => `₹${Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const formatCurrency = (num) => {
+      if (!num && num !== 0) return '₹0.00';
+      return `₹${Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
     
     const loans = await Loan.find({ user_id: req.user.id, ...ACTIVE })
       .populate('bank_id', 'name logo')
@@ -275,7 +281,10 @@ exports.getLoansHistory = async (req, res, next) => {
       }
     }
 
-    const formatCurrency = (num) => `₹${Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const formatCurrency = (num) => {
+      if (!num && num !== 0) return '₹0.00';
+      return `₹${Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
 
     const loans = await Loan.find(filter)
       .populate('bank_id', 'name logo')
@@ -403,7 +412,10 @@ exports.getLoanById = async (req, res, next) => {
       .populate('items.category_id', 'name');
     if (!loan) return error(res, 'Loan not found', 404);
     
-    const formatCurrency = (num) => `₹${Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const formatCurrency = (num) => {
+      if (!num && num !== 0) return '₹0.00';
+      return `₹${Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
     
     const loanObj = loan.toObject();
     const responseData = {
@@ -605,7 +617,10 @@ exports.getLoansByDate = async (req, res, next) => {
 
     console.log('Filter applied:', JSON.stringify(filter));
 
-    const formatCurrency = (num) => `₹${Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const formatCurrency = (num) => {
+      if (!num && num !== 0) return '₹0.00';
+      return `₹${Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
 
     // Get all loans matching user and optional bankId
     const allLoans = await Loan.find(filter)
