@@ -54,8 +54,8 @@ const loanSchema = new mongoose.Schema(
     gold_purity: { type: String, enum: ['18K', '20K', '22K', '24K'] },
     market_value_per_gram: { type: Number },
     ltv: { type: Number }, // %
-    max_permissible_limit: { type: Number }, // Calculated: total_market_value * (ltv / 100)
-    market_value_for_gold: { type: Number }, // Same as total_market_value
+    max_permissible_limit: { type: Number }, // USER INPUT - Can be manually entered
+    market_value_for_gold: { type: Number }, // USER INPUT - Can be manually entered
     final_amount: { type: Number },
     advanced_value_type: { type: String, default: 'LTV' },
 
@@ -90,14 +90,18 @@ loanSchema.pre('save', function () {
   this.total_items = totalItems;
   this.total_market_value = parseFloat(totalMarketValue.toFixed(2));
   
-  // NEW: market_value_for_gold = total_market_value
-  this.market_value_for_gold = this.total_market_value;
+  // NEW: market_value_for_gold - Use user input if provided, otherwise use total_market_value
+  if (!this.market_value_for_gold) {
+    this.market_value_for_gold = this.total_market_value;
+  }
 
   // 🔥 LTV logic (default 75%)
   const ltv = this.ltv || 75;
 
-  // NEW: max_permissible_limit = total_market_value * (ltv / 100)
-  this.max_permissible_limit = parseFloat((totalMarketValue * (ltv / 100)).toFixed(2));
+  // NEW: max_permissible_limit - Use user input if provided, otherwise calculate
+  if (!this.max_permissible_limit) {
+    this.max_permissible_limit = parseFloat((totalMarketValue * (ltv / 100)).toFixed(2));
+  }
 
   // loan_value calculation (same as max_permissible_limit)
   this.loan_value = this.max_permissible_limit;

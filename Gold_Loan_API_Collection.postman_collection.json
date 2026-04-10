@@ -318,7 +318,20 @@
                 {
                   "key": "ltv",
                   "value": "75",
-                  "type": "text"
+                  "type": "text",
+                  "description": "Loan-to-Value percentage (optional)"
+                },
+                {
+                  "key": "market_value_for_gold",
+                  "value": "50000",
+                  "type": "text",
+                  "description": "User can enter custom value (optional)"
+                },
+                {
+                  "key": "max_permissible_limit",
+                  "value": "40000",
+                  "type": "text",
+                  "description": "User can enter custom value (optional)"
                 },
                 {
                   "key": "items",
@@ -412,7 +425,20 @@
                 {
                   "key": "ltv",
                   "value": "80",
-                  "type": "text"
+                  "type": "text",
+                  "description": "Loan-to-Value percentage (optional)"
+                },
+                {
+                  "key": "market_value_for_gold",
+                  "value": "150000",
+                  "type": "text",
+                  "description": "User can enter custom value (optional)"
+                },
+                {
+                  "key": "max_permissible_limit",
+                  "value": "120000",
+                  "type": "text",
+                  "description": "User can enter custom value (optional)"
                 },
                 {
                   "key": "items",
