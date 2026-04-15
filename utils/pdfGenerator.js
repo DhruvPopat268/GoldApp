@@ -257,7 +257,7 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
   </div>
   <div style="margin-top: 24px;"></div>
   <div class="loan-amount-box">
-    <div class="label-box">Loan Amount ₹</div>
+    <div class="label-box">Loan Amount </div>
     <div class="underline">${formatCurrency(finalAmount)}</div>
   </div>
   <div class="sign-grid">
