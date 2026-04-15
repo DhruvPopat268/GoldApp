@@ -86,19 +86,16 @@ const processItems = async (items, userId, existingItems = []) => {
 };
 
 const buildPDFPayload = (loan, bank, settings, baseUrl) => {
-  const bankForPDF = { ...bank.toObject(), logo: bank.logo ? `${baseUrl}${bank.logo}` : null };
+  const bankForPDF = { ...bank.toObject(), logo: bank.logo };
   const loanForPDF = {
     ...loan.toObject(),
-    items: loan
-      .toObject()
-      .items.map((item) => ({ ...item, category_id: item.category_id?.toString() })),
-    // images are already full URLs stored in DB — pass them as-is
+    // Keep items as-is with populated category_id
     images: loan.images || [],
   };
   const settingsForPDF = settings
     ? {
         company_name: settings.company_name || '',
-        logo: settings.logo ? `${baseUrl}${settings.logo}` : null,
+        logo: settings.logo || null,
       }
     : null;
   return { loanForPDF, bankForPDF, settingsForPDF };
@@ -146,8 +143,10 @@ exports.createLoan = async (req, res) => {
       });
     }
 
-    // ✅ Handle images
-    const images = req.files?.item_image ? req.files.item_image.map((file) => file.path) : [];
+    // ✅ Handle images - convert to URLs
+    const images = req.files?.item_image 
+      ? req.files.item_image.map((file) => imgUrl(file.filename)) 
+      : [];
 
     const loan = new Loan({
       user_id,
@@ -218,6 +217,16 @@ exports.createLoan = async (req, res) => {
     // Add pdf_url to response
     responseData.pdf_url = loan.pdf_path || null;
     
+    // Convert image paths to full URLs
+    responseData.images = (loan.images || []).map(img => {
+      // If already a full URL, return as-is
+      if (img.startsWith('http://') || img.startsWith('https://')) {
+        return img;
+      }
+      // Otherwise convert to full URL
+      return `${BASE_URL()}${img}`;
+    });
+    
     // Add formatted display values
     responseData.total_market_value_display = formatCurrency(loan.total_market_value);
     responseData.market_value_for_gold_display = formatCurrency(loan.market_value_for_gold);
@@ -226,11 +235,15 @@ exports.createLoan = async (req, res) => {
     responseData.final_amount_display = formatCurrency(loan.final_amount);
     
     // Add formatted values for each item
-    responseData.items = responseData.items.map(item => ({
-      ...item,
-      market_value_display: formatCurrency(item.market_value),
-      rate_per_gram_display: formatCurrency(item.rate_per_gram),
-    }));
+    responseData.items = responseData.items.map(item => {
+      const totalItemMarketValue = item.market_value * (item.total_items || 1);
+      return {
+        ...item,
+        market_value_display: formatCurrency(item.market_value),
+        total_market_value_display: formatCurrency(totalItemMarketValue),
+        rate_per_gram_display: formatCurrency(item.rate_per_gram),
+      };
+    });
 
     return res.status(201).json({
       success: true,
@@ -273,16 +286,23 @@ exports.getLoans = async (req, res, next) => {
       return {
         ...loanObj,
         pdf_url: l.pdf_path || null,
+        images: (loanObj.images || []).map(img => 
+          img.startsWith('http://') || img.startsWith('https://') ? img : `${BASE_URL()}${img}`
+        ),
         total_market_value_display: formatCurrency(l.total_market_value),
         market_value_for_gold_display: formatCurrency(l.market_value_for_gold),
         max_permissible_limit_display: formatCurrency(l.max_permissible_limit),
         loan_value_display: formatCurrency(l.loan_value),
         final_amount_display: formatCurrency(l.final_amount),
-        items: loanObj.items.map(item => ({
-          ...item,
-          market_value_display: formatCurrency(item.market_value),
-          rate_per_gram_display: formatCurrency(item.rate_per_gram),
-        })),
+        items: loanObj.items.map(item => {
+          const totalItemMarketValue = item.market_value * (item.total_items || 1);
+          return {
+            ...item,
+            market_value_display: formatCurrency(item.market_value),
+            total_market_value_display: formatCurrency(totalItemMarketValue),
+            rate_per_gram_display: formatCurrency(item.rate_per_gram),
+          };
+        }),
       };
     });
     
@@ -328,16 +348,23 @@ exports.getLoansHistory = async (req, res, next) => {
       return {
         ...loanObj,
         pdf_url: l.pdf_path || null,
+        images: (loanObj.images || []).map(img => 
+          img.startsWith('http://') || img.startsWith('https://') ? img : `${BASE_URL()}${img}`
+        ),
         total_market_value_display: formatCurrency(l.total_market_value),
         market_value_for_gold_display: formatCurrency(l.market_value_for_gold),
         max_permissible_limit_display: formatCurrency(l.max_permissible_limit),
         loan_value_display: formatCurrency(l.loan_value),
         final_amount_display: formatCurrency(l.final_amount),
-        items: loanObj.items.map(item => ({
-          ...item,
-          market_value_display: formatCurrency(item.market_value),
-          rate_per_gram_display: formatCurrency(item.rate_per_gram),
-        })),
+        items: loanObj.items.map(item => {
+          const totalItemMarketValue = item.market_value * (item.total_items || 1);
+          return {
+            ...item,
+            market_value_display: formatCurrency(item.market_value),
+            total_market_value_display: formatCurrency(totalItemMarketValue),
+            rate_per_gram_display: formatCurrency(item.rate_per_gram),
+          };
+        }),
       };
     });
 
@@ -453,16 +480,23 @@ exports.getLoanById = async (req, res, next) => {
     const responseData = {
       ...loanObj,
       pdf_url: loan.pdf_path || null,
+      images: (loanObj.images || []).map(img => 
+        img.startsWith('http://') || img.startsWith('https://') ? img : `${BASE_URL()}${img}`
+      ),
       total_market_value_display: formatCurrency(loan.total_market_value),
       market_value_for_gold_display: formatCurrency(loan.market_value_for_gold),
       max_permissible_limit_display: formatCurrency(loan.max_permissible_limit),
       loan_value_display: formatCurrency(loan.loan_value),
       final_amount_display: formatCurrency(loan.final_amount),
-      items: loanObj.items.map(item => ({
-        ...item,
-        market_value_display: formatCurrency(item.market_value),
-        rate_per_gram_display: formatCurrency(item.rate_per_gram),
-      })),
+      items: loanObj.items.map(item => {
+        const totalItemMarketValue = item.market_value * (item.total_items || 1);
+        return {
+          ...item,
+          market_value_display: formatCurrency(item.market_value),
+          total_market_value_display: formatCurrency(totalItemMarketValue),
+          rate_per_gram_display: formatCurrency(item.rate_per_gram),
+        };
+      }),
     };
     
     return success(res, responseData, 'Loan retrieved successfully');
@@ -683,16 +717,23 @@ exports.getLoansByDate = async (req, res, next) => {
       return {
         ...loanObj,
         pdf_url: l.pdf_path || null,
+        images: (loanObj.images || []).map(img => 
+          img.startsWith('http://') || img.startsWith('https://') ? img : `${BASE_URL()}${img}`
+        ),
         total_market_value_display: formatCurrency(l.total_market_value),
         market_value_for_gold_display: formatCurrency(l.market_value_for_gold),
         max_permissible_limit_display: formatCurrency(l.max_permissible_limit),
         loan_value_display: formatCurrency(l.loan_value),
         final_amount_display: formatCurrency(l.final_amount),
-        items: loanObj.items.map(item => ({
-          ...item,
-          market_value_display: formatCurrency(item.market_value),
-          rate_per_gram_display: formatCurrency(item.rate_per_gram),
-        })),
+        items: loanObj.items.map(item => {
+          const totalItemMarketValue = item.market_value * (item.total_items || 1);
+          return {
+            ...item,
+            market_value_display: formatCurrency(item.market_value),
+            total_market_value_display: formatCurrency(totalItemMarketValue),
+            rate_per_gram_display: formatCurrency(item.rate_per_gram),
+          };
+        }),
       };
     });
 

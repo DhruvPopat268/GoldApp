@@ -3,14 +3,27 @@ const Loan = require('../models/Loan');
 const fs = require('fs');
 const path = require('path');
 
-const deleteFile = (relPath) => {
-  if (!relPath) return;
-  const abs = path.join(__dirname, '..', relPath);
+const BASE_URL = () => process.env.BASE_URL || 'http://localhost:5000';
+
+const deleteFile = (fileUrl) => {
+  if (!fileUrl) return;
   try {
+    const pathname = new URL(fileUrl).pathname;
+    const abs =
+      process.env.NODE_ENV === 'production'
+        ? path.join('/app', pathname)
+        : path.join(__dirname, '..', pathname);
     if (fs.existsSync(abs)) fs.unlinkSync(abs);
   } catch {
     /* ignore */
   }
+};
+
+const imgUrl = (filename) => {
+  const base = BASE_URL();
+  return process.env.NODE_ENV === 'production'
+    ? `${base}/cloud/images/${filename}`
+    : `${base}/uploads/banks/${filename}`;
 };
 
 const ACTIVE = { is_deleted: false };
@@ -19,12 +32,9 @@ const DELETED = { is_deleted: true };
 exports.createBank = async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Logo image is required' });
-    const logo = `/uploads/banks/${req.file.filename}`;
+    const logo = imgUrl(req.file.filename);
     const bank = await Bank.create({ user_id: req.user.id, name: req.body.name.trim(), logo });
-    return res.status(201).json({
-      ...bank.toObject(),
-      logo_url: `${process.env.BASE_URL}${bank.logo}`
-    });
+    return res.status(201).json(bank.toObject());
   } catch (err) {
     next(err);
   }
@@ -33,11 +43,7 @@ exports.createBank = async (req, res, next) => {
 exports.getBanks = async (req, res, next) => {
   try {
     const banks = await Bank.find({ user_id: req.user.id, ...ACTIVE }).sort({ createdAt: -1 });
-    const banksWithUrl = banks.map(bank => ({
-      ...bank.toObject(),
-      logo_url: `${process.env.BASE_URL}${bank.logo}`
-    }));
-    return res.json(banksWithUrl);
+    return res.json(banks);
   } catch (err) {
     next(err);
   }
@@ -46,11 +52,7 @@ exports.getBanks = async (req, res, next) => {
 exports.getTrashBanks = async (req, res, next) => {
   try {
     const banks = await Bank.find({ user_id: req.user.id, ...DELETED }).sort({ deleted_at: -1 });
-    const banksWithUrl = banks.map(bank => ({
-      ...bank.toObject(),
-      logo_url: `${process.env.BASE_URL}${bank.logo}`
-    }));
-    return res.json(banksWithUrl);
+    return res.json(banks);
   } catch (err) {
     next(err);
   }
@@ -64,14 +66,11 @@ exports.updateBank = async (req, res, next) => {
     if (req.body.name) bank.name = req.body.name.trim();
     if (req.file) {
       deleteFile(bank.logo);
-      bank.logo = `/uploads/banks/${req.file.filename}`;
+      bank.logo = imgUrl(req.file.filename);
     }
 
     await bank.save();
-    return res.json({
-      ...bank.toObject(),
-      logo_url: `${process.env.BASE_URL}${bank.logo}`
-    });
+    return res.json(bank.toObject());
   } catch (err) {
     next(err);
   }
@@ -102,10 +101,7 @@ exports.restoreBank = async (req, res, next) => {
     bank.is_deleted = false;
     bank.deleted_at = null;
     await bank.save();
-    return res.json({
-      ...bank.toObject(),
-      logo_url: `${process.env.BASE_URL}${bank.logo}`
-    });
+    return res.json(bank.toObject());
   } catch (err) {
     next(err);
   }

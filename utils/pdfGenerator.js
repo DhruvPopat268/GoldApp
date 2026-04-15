@@ -73,176 +73,176 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
   });
 
   const itemRows = loan.items
-    .map(
-      (item, i) => `
-    <tr>
-      <td>${i + 1}. ${escapeHtml(categoryMap[item.category_id?.toString()] || 'N/A')}</td>
-      <td class="text-right">${escapeHtml(item.total_items || 1)}</td>
-      <td class="text-right">${escapeHtml(item.gross_weight)} g</td>
-      <td class="text-right">${escapeHtml(item.net_weight)} g</td>
-      <td class="text-right">${escapeHtml(item.carat)}K</td>
-      <td class="text-right currency">${formatCurrency(item.rate_per_gram)}</td>
-      <td class="text-right currency">${formatCurrency(item.market_value)}</td>
-    </tr>`
-    )
-    .join('');
-
-  const imageGrid = (loan.images || [])
-    .map((img, i) => {
-      const imageSrc = getDataUri(img, baseUrl);
-      if (!imageSrc) return '';
+    .map((item, i) => {
+      // Handle both populated and non-populated category_id
+      let categoryName = 'N/A';
+      if (item.category_id) {
+        if (typeof item.category_id === 'object' && item.category_id.name) {
+          // Already populated
+          categoryName = item.category_id.name;
+        } else {
+          // String ID - lookup in categoryMap
+          const catId = typeof item.category_id === 'string' ? item.category_id : item.category_id.toString();
+          categoryName = categoryMap[catId] || 'N/A';
+        }
+      }
+      
+      // Add quantity in parentheses if total_items > 1
+      const quantity = item.total_items || 1;
+      const displayName = quantity > 1 ? `${categoryName} (${quantity})` : categoryName;
+      
+      // Calculate total market value for all items
+      const totalMarketValue = item.market_value * quantity;
+      
       return `
-      <div class="img-cell">
-        <img src="${imageSrc}" alt="Image ${i + 1}" />
-        <p>Image ${i + 1}</p>
-      </div>`;
+      <tr>
+        <td class="no">${i + 1}</td>
+        <td class="desc">${escapeHtml(displayName)}</td>
+        <td>${escapeHtml(item.gross_weight)}</td>
+        <td>${escapeHtml(item.net_weight)}</td>
+        <td>${escapeHtml(item.carat)}</td>
+        <td>${escapeHtml(item.rate_per_gram)}</td>
+        <td>${formatCurrency(totalMarketValue)}</td>
+      </tr>`;
     })
-    .filter(Boolean)
     .join('');
 
   const safeLogo = bank.logo ? getDataUri(bank.logo, baseUrl) : null;
   const logoTag = safeLogo
-    ? `<img src="${safeLogo}" alt="${escapeHtml(bank.name)} Logo" class="bank-logo" />`
-    : '';
+    ? `<img src="${safeLogo}" alt="${escapeHtml(bank.name)} Logo" style="width:auto;height:70px;max-width:80px;border-radius:4px;object-fit:contain;" />`
+    : `<div style="width:52px;height:52px;background:#cc2a2a;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:22px;">${escapeHtml(bank.name.charAt(0))}</div>`;
 
-  const safeCompanyName = settings?.company_name ? escapeHtml(settings.company_name) : null;
-  const safeCompanyLogo = settings?.logo ? getDataUri(settings.logo, baseUrl) : null;
-
-  // Header uses company logo/name if set in settings, otherwise falls back to bank
-  const headerLogo = safeCompanyLogo || safeLogo;
-  const headerLogoTag = headerLogo
-    ? `<img src="${headerLogo}" alt="Logo" class="bank-logo" />`
-    : '';
-  const headerTitle = safeCompanyName || escapeHtml(bank.name);
+  const totalGrossWeight = loan.items.reduce((sum, item) => sum + Number(item.gross_weight || 0), 0).toFixed(2);
+  const totalNetWeight = loan.items.reduce((sum, item) => sum + Number(item.net_weight || 0), 0).toFixed(2);
+  const totalMarketValue = loan.total_market_value || 0;
+  const marketValueForGold = loan.market_value_for_gold || totalMarketValue;
+  const goldPurity = loan.gold_purity || '';
+  const ltvPercent = loan.ltv || 75;
+  const maxPermissibleLimit = loan.max_permissible_limit || 0;
+  const finalAmount = loan.final_amount || 0;
+  const accountBoxes = (loan.account_number || '').split('').map(char => `<div class="box">${escapeHtml(char)}</div>`).join('');
 
   return `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<style>
-  @page { size: A4; margin: 15mm; }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #222; background: #f4f4f4; }
-  .page { width: 210mm; min-height: 297mm; padding: 18mm; margin: 10mm auto; border: 1px solid #e0d8c7; border-radius: 12px; background: #ffffff; box-shadow: 0 4px 18px rgba(0,0,0,0.08); }
-  .page-break { page-break-before: always; }
-  .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #b8860b; padding-bottom: 14px; margin-bottom: 18px; }
-  .bank-logo { height: 70px; width: auto; margin-right: 18px; }
-  .header-text h1 { font-size: 26px; color: #4a2f0d; margin-bottom: 4px; }
-  .header-text h2 { font-size: 13px; color: #6b4a1b; font-weight: 600; letter-spacing: 0.03em; }
-  .header-subtitle { font-size: 11px; color: #555; margin-top: 6px; }
-  .section-title { background: #b8860b; color: white; padding: 6px 10px; font-size: 12px; margin: 18px 0 10px; border-radius: 6px; display: inline-block; }
-  .info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; margin-bottom: 14px; }
-  .info-card { background: #fff8f0; border: 1px solid #f0e3d3; border-radius: 10px; padding: 12px 14px; }
-  .info-row { display: flex; gap: 8px; margin-bottom: 4px; }
-  .info-row:last-child { margin-bottom: 0; }
-  .info-label { font-weight: 700; width: 135px; color: #664118; }
-  .info-value { color: #3a2c20; }
-  table { width: 100%; border-collapse: collapse; margin-top: 10px; box-shadow: 0 0 0 1px #e6e0d6; }
-  th, td { padding: 10px 12px; }
-  th { background: #f5e4d2; color: #4a2f0d; font-size: 12px; text-align: left; border-bottom: 2px solid #d9c3a4; }
-  td { border-bottom: 1px solid #eee; font-size: 11.5px; color: #3a2c20; }
-  tr:nth-child(even) td { background: #fbf6f1; }
-  .text-right { text-align: right; }
-  .currency { white-space: nowrap; }
-  .totals { margin-top: 18px; display: flex; justify-content: flex-end; }
-  .totals table { width: 340px; border: 1px solid #e7d5bd; border-radius: 10px; overflow: hidden; }
-  .totals td { border: none; padding: 12px 14px; font-size: 12px; }
-  .totals tr:nth-child(odd) { background: #faf3eb; }
-  .totals tr:nth-child(even) { background: #fff7ed; }
-  .totals .label { color: #6b4a1b; font-weight: 600; }
-  .totals .value { color: #222; text-align: right; }
-  .totals .highlight { background: #4a2f0d; color: white; font-weight: 700; }
-  .notes { margin-top: 14px; font-size: 10.5px; color: #5f4a37; line-height: 1.4; }
-  .signatures { display: flex; justify-content: space-between; gap: 12px; margin-top: 32px; }
-  .sig-box { text-align: center; width: 30%; padding-top: 12px; }
-  .sig-line { border-top: 1px solid #8c7a69; margin-bottom: 6px; }
-  .sig-box p { font-size: 10.5px; color: #5f4a37; margin-top: 6px; }
-  .img-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
-  .img-cell { border: 1px solid #e7d5bd; border-radius: 10px; overflow: hidden; background: #fff; }
-  .img-cell img { width: 100%; max-height: 220px; object-fit: cover; display: block; }
-  .img-cell p { margin: 10px 0 8px; color: #4a2f0d; font-size: 11px; font-weight: 600; }
-  .memo-no { font-size: 11px; color: #6b4a1b; margin-top: 6px; letter-spacing: 0.01em; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>${escapeHtml(bank.name)} – Gold Re Appraisal Memo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #d6cfc4; font-family: 'Libre Franklin', sans-serif; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 32px 16px; }
+    .page { background: #faf8f3; width: 760px; padding: 28px 32px 36px; border: 1px solid #bbb; box-shadow: 0 4px 24px rgba(0,0,0,0.18); print-color-adjust: exact; }
+    .header { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 2px solid #222; padding-bottom: 10px; margin-bottom: 14px; }
+    .logo-block { display: flex; align-items: center; gap: 10px; }
+    .logo-text-block { }
+    .logo-english { font-size: 13px; font-weight: 700; color: #222; }
+    .logo-tagline { font-size: 9px; color: #555; letter-spacing: 0.4px; }
+    .header-right { text-align: right; }
+    .memo-title { font-size: 18px; font-weight: 700; color: #111; letter-spacing: 0.3px; }
+    .fields-row { display: flex; gap: 24px; margin-bottom: 14px; font-size: 12px; color: #222; }
+    .field-line { display: flex; align-items: center; gap: 6px; flex: 1; }
+    .field-line label { font-weight: 600; white-space: nowrap; }
+    .field-line .underline { flex: 1; border-bottom: 1px solid #555; min-height: 18px; }
+    .acno-boxes { display: flex; gap: 2px; }
+    .acno-boxes .box { width: 20px; height: 20px; border: 1px solid #555; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+    table.main { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-bottom: 14px; }
+    table.main th, table.main td { border: 1px solid #444; padding: 4px 6px; text-align: center; vertical-align: middle; }
+    table.main thead tr th { background: #e8e0d0; font-weight: 700; font-size: 11px; color: #111; }
+    table.main tbody td.desc { text-align: left; }
+    table.main tbody td.no { font-weight: 600; }
+    table.main tfoot td { font-weight: 700; background: #e8e0d0; font-size: 12px; }
+    .mv-section { font-size: 11.5px; color: #111; margin-bottom: 10px; line-height: 2.0; }
+    .mv-section .line { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 4px; }
+    .mv-section .underline { border-bottom: 1px solid #555; min-width: 80px; display: inline-block; padding: 0 4px; }
+    .mv-section .underline-lg { border-bottom: 1px solid #555; min-width: 160px; display: inline-block; padding: 0 4px; }
+    .sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; font-size: 11.5px; }
+    .sign-line { display: flex; align-items: flex-end; gap: 6px; }
+    .sign-line label { font-weight: 600; white-space: nowrap; }
+    .sign-line .underline { flex:1; border-bottom: 1px solid #555; }
+    .cert-title { text-align: center; font-size: 14px; font-weight: 700; text-decoration: underline; margin-bottom: 8px; }
+    .cert-text { font-size: 11px; line-height: 1.7; color: #111; margin-bottom: 8px; }
+    .footer-row { display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; font-weight: 600; border-top: 1px solid #888; padding-top: 8px; }
+    @media print { body { background: none; padding: 0; } .page { box-shadow: none; } }
+  </style>
 </head>
 <body>
-
-<!-- PAGE 1 -->
 <div class="page">
   <div class="header">
-    ${headerLogoTag}
-    <div class="header-text">
-      <h1>${headerTitle}</h1>
-      <h2>Gold Appraisal Memo</h2>
-      <div class="memo-no">Memo No: GL-${Date.now()} &nbsp;|&nbsp; Date: ${formatDate(new Date())}</div>
+    <div class="logo-block">
+      ${logoTag}
+      <div class="logo-text-block">
+        <div class="logo-english">${escapeHtml(bank.name)}</div>
+        <div class="logo-tagline">India's International Bank</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="memo-title">Gold Re Appraisal Memo</div>
     </div>
   </div>
-
-  <div class="section-title">Customer Details</div>
-  <div class="info-grid">
-    <div class="info-card">
-      <div class="info-row"><span class="info-label">Full Name:</span><span class="info-value">${escapeHtml(loan.full_name)}</span></div>
-      <div class="info-row"><span class="info-label">Date of Birth:</span><span class="info-value">${formatDate(loan.dob)}</span></div>
-      <div class="info-row"><span class="info-label">Mobile:</span><span class="info-value">${escapeHtml(loan.mobile)}</span></div>
-      <div class="info-row"><span class="info-label">Account Number:</span><span class="info-value">${escapeHtml(loan.account_number)}</span></div>
+  <div class="fields-row">
+    <div class="field-line">
+      <label>Name :</label>
+      <div class="underline">${escapeHtml(loan.full_name)}</div>
     </div>
-    <div class="info-card">
-      <div class="info-row"><span class="info-label">Address:</span><span class="info-value">${escapeHtml(loan.address)}</span></div>
-      <div class="info-row"><span class="info-label">Nominee Name:</span><span class="info-value">${escapeHtml(loan.nominee_name)}</span></div>
-      <div class="info-row"><span class="info-label">Nominee DOB:</span><span class="info-value">${formatDate(loan.nominee_dob)}</span></div>
-      <div class="info-row"><span class="info-label">Bank:</span><span class="info-value">${escapeHtml(bank.name)}</span></div>
+    <div class="field-line" style="flex:none;">
+      <label>A/c No. :</label>
+      <div class="acno-boxes">${accountBoxes}</div>
     </div>
   </div>
-
-  <div class="section-title">Gold Items</div>
-  <table>
+  <table class="main">
     <thead>
       <tr>
-        <th>Item / Category</th>
-        <th>Total Items</th>
-        <th>Gross Weight</th>
-        <th>Net Weight</th>
-        <th>Carat</th>
-        <th class="text-right">Rate / g</th>
-        <th class="text-right">Market Value</th>
+        <th style="width:44px;">No. of Article</th>
+        <th>Description of the Gold Jewellery</th>
+        <th style="width:88px;">Gross Weight (In grams)</th>
+        <th style="width:88px;">Net Weight (In grams)</th>
+        <th style="width:54px;">Carat</th>
+        <th style="width:72px;">Rate per Gram</th>
+        <th style="width:88px;">Market Value (in ₹)</th>
       </tr>
     </thead>
     <tbody>${itemRows}</tbody>
+    <tfoot>
+      <tr>
+        <td colspan="2" style="text-align:center;">Total</td>
+        <td>${totalGrossWeight}</td>
+        <td>${totalNetWeight}</td>
+        <td></td>
+        <td></td>
+        <td>${formatCurrency(totalMarketValue)}</td>
+      </tr>
+    </tfoot>
   </table>
-
-  <div class="totals">
-    <table>
-      <tr><td class="label">Total Items</td><td class="value">${loan.total_items || 0}</td></tr>
-      <tr><td class="label">Total Market Value</td><td class="value currency">${formatCurrency(loan.total_market_value)}</td></tr>
-      <tr class="highlight"><td class="label">Loan Value (75%)</td><td class="value currency">${formatCurrency(loan.loan_value)}</td></tr>
-    </table>
-  </div>
-
-  <div class="notes">
-    Note: Loan value is calculated as 75% of the total market value of pledged gold items. Please verify all item details and uploaded photographs.
-  </div>
-
-  <div class="signatures">
-    <div class="sig-box"><div class="sig-line"></div><p>Appraiser Signature</p></div>
-    <div class="sig-box"><div class="sig-line"></div><p>Customer Signature</p></div>
-    <div class="sig-box"><div class="sig-line"></div><p>Authorised Signatory</p></div>
-  </div>
-</div>
-
-<!-- PAGE 2 -->
-<div class="page page-break">
-  <div class="header">
-    ${headerLogoTag}
-    <div class="header-text">
-      <h1>${headerTitle}</h1>
-      <h2>Gold Item Images</h2>
+  <div class="mv-section">
+    <div class="line">
+      Market value for above Gold @ <span class="underline">${goldPurity}</span> % is
+      <span class="underline-lg">${formatCurrency(marketValueForGold)}</span>
+      &nbsp;&nbsp;&nbsp; ${ltvPercent}% of market value is ₹ <span class="underline-lg">${formatCurrency(loan.loan_value || 0)}</span>
+    </div>
+    <div class="line">
+      Advanced value as per Bank's Norms ₹ <span class="underline-lg">&nbsp;</span>
+    </div>
+    <div class="line">
+      Limit As per Bank's Advance Rate : <span class="underline-lg">&nbsp;</span>
     </div>
   </div>
-  <div class="section-title">PLEDGED GOLD ITEM PHOTOGRAPHS</div>
-  <div class="img-grid">
-    ${imageGrid || '<p style="color:#999;margin-top:10px;">No images uploaded.</p>'}
+  <div class="sign-grid">
+    <div class="sign-line"><label>Sign of Customer</label><div class="underline"></div></div>
+    <div class="sign-line"><label>Sign of Manager</label><div class="underline"></div></div>
+    <div class="sign-line"><label>Sign of Officer</label><div class="underline"></div></div>
+    <div class="sign-line"><label>Sign of Officer</label><div class="underline"></div></div>
+  </div>
+  <div class="cert-title">Valuation Certificate</div>
+  <div class="cert-text">
+    I hereby certify that I have tested / appraised the above & the gross weight of the article, net weight of Gold, Carat
+    purity of fineness, rate per gram & market value shown against the ornaments mentioned is ₹ ${formatCurrency(totalMarketValue)}
+    to the best of my knowledge correct & in order.
+  </div>
+  <div class="footer-row">
+    <div><strong>Date :</strong> ${formatDate(new Date())}</div>
+    <div><strong>Signature of Assayer</strong></div>
   </div>
 </div>
-
 </body>
 </html>`;
 }

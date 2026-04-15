@@ -71,7 +71,7 @@ if (process.env.NODE_ENV === 'production') {
 app.use('/uploads', (req, res) => {
   res.status(404).json({ error: 'File not found' });
 });
-
+ 
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/banks', require('./routes/bankRoutes'));
 app.use('/api/categories', require('./routes/categoryRoutes'));
