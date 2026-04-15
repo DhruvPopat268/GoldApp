@@ -257,8 +257,8 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
   </div>
   <div style="margin-top: 24px;"></div>
   <div class="loan-amount-box">
-    <div class="label-box">ધિરાણની રકમ રૂા.</div>
-    <div class="underline"></div>
+    <div class="label-box">Loan Amount ₹</div>
+    <div class="underline">${formatCurrency(finalAmount)}</div>
   </div>
   <div class="sign-grid">
     <div class="sign-line"><label>Sign of Customer</label><div class="underline"></div></div>
