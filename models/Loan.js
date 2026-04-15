@@ -82,29 +82,30 @@ loanSchema.pre('save', function () {
     const value = item.net_weight * item.rate_per_gram;
     item.market_value = parseFloat(value.toFixed(2));
 
-    // Sum up total market value and total items
-    totalMarketValue += value * item.total_items;
+    // Sum up total market value and total items (without multiplying by total_items)
+    totalMarketValue += value;
     totalItems += item.total_items;
   });
 
   this.total_items = totalItems;
   this.total_market_value = parseFloat(totalMarketValue.toFixed(2));
   
-  // NEW: market_value_for_gold - Use user input if provided, otherwise use total_market_value
-  if (!this.market_value_for_gold) {
-    this.market_value_for_gold = this.total_market_value;
+  // market_value_for_gold is stored as percentage (e.g., 90 means 90%)
+  // Calculate actual rupee value for loan_value calculation
+  let actualMarketValueForGold = this.total_market_value;
+  if (this.market_value_for_gold) {
+    actualMarketValueForGold = this.total_market_value * (this.market_value_for_gold / 100);
   }
 
-  // 🔥 LTV logic (default 75%)
-  const ltv = this.ltv || 75;
+  // Calculate max allowable loan amount: actualMarketValueForGold * (ltv / 100)
+  if (this.market_value_for_gold && this.ltv) {
+    const maxAllowableLoan = actualMarketValueForGold * (this.ltv / 100);
+    this.loan_value = parseFloat(maxAllowableLoan.toFixed(2));
+  } else {
+    this.loan_value = this.max_permissible_limit || 0;
+  }
 
-  // max_permissible_limit - ONLY user input, no auto-calculation
-  // User must provide this value
-
-  // loan_value calculation (same as max_permissible_limit)
-  this.loan_value = this.max_permissible_limit || 0;
-
-  // 🔥 Final amount fallback
+  // Final amount fallback
   if (!this.final_amount) {
     this.final_amount = this.loan_value;
   }

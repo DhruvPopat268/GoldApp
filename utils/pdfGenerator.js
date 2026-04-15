@@ -91,9 +91,6 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
       const quantity = item.total_items || 1;
       const displayName = quantity > 1 ? `${categoryName} (${quantity})` : categoryName;
       
-      // Calculate total market value for all items
-      const totalMarketValue = item.market_value * quantity;
-      
       return `
       <tr>
         <td class="no">${i + 1}</td>
@@ -102,7 +99,7 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
         <td>${escapeHtml(item.net_weight)}</td>
         <td>${escapeHtml(item.carat)}</td>
         <td>${escapeHtml(item.rate_per_gram)}</td>
-        <td>${formatCurrency(totalMarketValue)}</td>
+        <td>${formatCurrency(item.market_value)}</td>
       </tr>`;
     })
     .join('');
@@ -115,9 +112,12 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
   const totalGrossWeight = loan.items.reduce((sum, item) => sum + Number(item.gross_weight || 0), 0).toFixed(2);
   const totalNetWeight = loan.items.reduce((sum, item) => sum + Number(item.net_weight || 0), 0).toFixed(2);
   const totalMarketValue = loan.total_market_value || 0;
-  const marketValueForGold = loan.market_value_for_gold || totalMarketValue;
+  const marketValueForGoldPercent = loan.market_value_for_gold || 100;
   const goldPurity = loan.gold_purity || '';
   const ltvPercent = loan.ltv || 75;
+  const maxAllowableLoan = totalMarketValue * (ltvPercent / 100);
+  const advancedValueType = loan.advanced_value_type || 0;
+  const advancedValueNorms = Number(totalNetWeight) * Number(advancedValueType);
   const maxPermissibleLimit = loan.max_permissible_limit || 0;
   const finalAmount = loan.final_amount || 0;
   const accountBoxes = (loan.account_number || '').split('').map(char => `<div class="box">${escapeHtml(char)}</div>`).join('');
@@ -130,7 +130,7 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
   <title>${escapeHtml(bank.name)} – Gold Re Appraisal Memo</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #d6cfc4; font-family: 'Libre Franklin', sans-serif; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 32px 16px; }
+    body { background: #d6cfc4; font-family: 'Libre Franklin', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 32px 16px; }
     .page { background: #faf8f3; width: 760px; padding: 28px 32px 36px; border: 1px solid #bbb; box-shadow: 0 4px 24px rgba(0,0,0,0.18); print-color-adjust: exact; }
     .header { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 2px solid #222; padding-bottom: 10px; margin-bottom: 14px; }
     .logo-block { display: flex; align-items: center; gap: 10px; }
@@ -155,10 +155,13 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
     .mv-section .line { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 4px; }
     .mv-section .underline { border-bottom: 1px solid #555; min-width: 80px; display: inline-block; padding: 0 4px; }
     .mv-section .underline-lg { border-bottom: 1px solid #555; min-width: 160px; display: inline-block; padding: 0 4px; }
-    .sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; font-size: 11.5px; }
+    .sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; margin-bottom: 14px; font-size: 11.5px; }
     .sign-line { display: flex; align-items: flex-end; gap: 6px; }
     .sign-line label { font-weight: 600; white-space: nowrap; }
     .sign-line .underline { flex:1; border-bottom: 1px solid #555; }
+    .loan-amount-box { padding: 10px 0; margin-bottom: 14px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; font-size: 11.5px; }
+    .loan-amount-box .label-box { font-family: 'Noto Sans Gujarati', sans-serif; font-weight: 600; }
+    .loan-amount-box .underline { border-bottom: 1px solid #555; min-width: 200px; display: inline-block; min-height: 20px; }
     .cert-title { text-align: center; font-size: 14px; font-weight: 700; text-decoration: underline; margin-bottom: 8px; }
     .cert-text { font-size: 11px; line-height: 1.7; color: #111; margin-bottom: 8px; }
     .footer-row { display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; font-weight: 600; border-top: 1px solid #888; padding-top: 8px; }
@@ -184,9 +187,35 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
       <label>Name :</label>
       <div class="underline">${escapeHtml(loan.full_name)}</div>
     </div>
+    <div class="field-line">
+      <label>DOB :</label>
+      <div class="underline">${formatDate(loan.dob)}</div>
+    </div>
+  </div>
+  <div class="fields-row">
     <div class="field-line" style="flex:none;">
       <label>A/c No. :</label>
       <div class="acno-boxes">${accountBoxes}</div>
+    </div>
+    <div class="field-line">
+      <label>Mobile :</label>
+      <div class="underline">${escapeHtml(loan.mobile)}</div>
+    </div>
+  </div>
+  <div class="fields-row">
+    <div class="field-line">
+      <label>Address :</label>
+      <div class="underline">${escapeHtml(loan.address)}</div>
+    </div>
+  </div>
+  <div class="fields-row">
+    <div class="field-line">
+      <label>Nominee Name :</label>
+      <div class="underline">${escapeHtml(loan.nominee_name)}</div>
+    </div>
+    <div class="field-line">
+      <label>Nominee DOB :</label>
+      <div class="underline">${formatDate(loan.nominee_dob)}</div>
     </div>
   </div>
   <table class="main">
@@ -215,23 +244,31 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
   </table>
   <div class="mv-section">
     <div class="line">
-      Market value for above Gold @ <span class="underline">${goldPurity}</span> % is
-      <span class="underline-lg">${formatCurrency(marketValueForGold)}</span>
-      &nbsp;&nbsp;&nbsp; ${ltvPercent}% of market value is ₹ <span class="underline-lg">${formatCurrency(loan.loan_value || 0)}</span>
+      Market value for above Gold @ <span class="underline">${marketValueForGoldPercent}%</span> is
+      <span class="underline-lg">${formatCurrency(totalMarketValue)}</span>
+      &nbsp;&nbsp;&nbsp; ${ltvPercent}% of market value is  <span class="underline-lg">${formatCurrency(maxAllowableLoan)}</span>
     </div>
     <div class="line">
-      Advanced value as per Bank's Norms ₹ <span class="underline-lg">&nbsp;</span>
+      Advanced value as per Bank's Norms ₹ <span class="underline-lg">${formatCurrency(advancedValueNorms)}</span>
     </div>
     <div class="line">
-      Limit As per Bank's Advance Rate : <span class="underline-lg">&nbsp;</span>
+      Limit As per Bank's Advance Rate : <span class="underline-lg">${advancedValueType}</span>
     </div>
+  </div>
+  <div style="margin-top: 24px;"></div>
+  <div class="loan-amount-box">
+    <div class="label-box">ધિરાણની રકમ રૂા.</div>
+    <div class="underline"></div>
   </div>
   <div class="sign-grid">
     <div class="sign-line"><label>Sign of Customer</label><div class="underline"></div></div>
     <div class="sign-line"><label>Sign of Manager</label><div class="underline"></div></div>
+  </div>
+  <div class="sign-grid" style="margin-top: 20px;">
     <div class="sign-line"><label>Sign of Officer</label><div class="underline"></div></div>
     <div class="sign-line"><label>Sign of Officer</label><div class="underline"></div></div>
   </div>
+  <div style="margin-top: 24px;"></div>
   <div class="cert-title">Valuation Certificate</div>
   <div class="cert-text">
     I hereby certify that I have tested / appraised the above & the gross weight of the article, net weight of Gold, Carat
@@ -240,7 +277,7 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
   </div>
   <div class="footer-row">
     <div><strong>Date :</strong> ${formatDate(new Date())}</div>
-    <div><strong>Signature of Assayer</strong></div>
+    <div style="padding-top: 40px;"><strong>Signature of Assayer</strong></div>
   </div>
 </div>
 </body>
