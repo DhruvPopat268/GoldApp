@@ -5,7 +5,7 @@ const { randomUUID } = require('crypto');
 const { URL } = require('url');
 
 const formatDate = (d) => (d ? new Date(d).toLocaleDateString('en-IN') : '');
-const formatCurrency = (n) => `₹${Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+const formatCurrency = (n) => `${Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
 // Escape user-supplied strings before embedding in HTML to prevent XSS in PDF
 const escapeHtml = (str) =>
@@ -199,7 +199,7 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
     </div>
     <div class="field-line">
       <label>Mobile :</label>
-      <div class="underline">${escapeHtml(loan.mobile)}</div>
+      <div class="underline">+91 ${escapeHtml(loan.mobile)}</div>
     </div>
   </div>
   <div class="fields-row">
@@ -226,7 +226,7 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
         <th style="width:88px;">Gross Weight (In grams)</th>
         <th style="width:88px;">Net Weight (In grams)</th>
         <th style="width:54px;">Carat</th>
-        <th style="width:72px;">Rate per Gram</th>
+        <th style="width:72px;">Rate per Gram (in ₹)</th>
         <th style="width:88px;">Market Value (in ₹)</th>
       </tr>
     </thead>
@@ -252,7 +252,7 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
       Advanced value as per Bank's Norms ₹ <span class="underline-lg">${formatCurrency(advancedValueNorms)}</span>
     </div>
     <div class="line">
-      Limit As per Bank's Advance Rate : <span class="underline-lg">${advancedValueType}</span>
+      Limit As per Bank's Advance Rate ₹: <span class="underline-lg">${advancedValueType}</span>
     </div>
   </div>
   <div style="margin-top: 24px;"></div>
