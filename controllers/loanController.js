@@ -144,6 +144,59 @@ exports.createLoan = async (req, res) => {
       });
     }
 
+    // ✅ Parse bank_approved (optional)
+    let bank_approved = [];
+    if (req.body.bank_approved) {
+      try {
+        bank_approved = JSON.parse(req.body.bank_approved);
+        
+        // Collect all category_ids from items
+        const itemsCategoryIds = items.map(item => item.category_id.toString());
+        
+        // Validate each bank_approved item
+        for (let i = 0; i < bank_approved.length; i++) {
+          const item = bank_approved[i];
+          if (!item.category_id || !item.net_weight || !item.carat || !item.rate_per_gram) {
+            return res.status(400).json({
+              success: false,
+              message: `Bank approved item ${i + 1}: category_id, net_weight, carat, and rate_per_gram are required`,
+            });
+          }
+          // Validate category exists and belongs to user
+          if (!mongoose.Types.ObjectId.isValid(item.category_id)) {
+            return res.status(400).json({
+              success: false,
+              message: `Bank approved item ${i + 1}: invalid category_id`,
+            });
+          }
+          const categoryExists = await Category.findOne({ 
+            _id: item.category_id, 
+            user_id: user_id, 
+            ...ACTIVE 
+          });
+          if (!categoryExists) {
+            return res.status(404).json({
+              success: false,
+              message: `Bank approved item ${i + 1}: category not found`,
+            });
+          }
+          
+          // Validate that bank_approved category_id exists in items
+          if (!itemsCategoryIds.includes(item.category_id.toString())) {
+            return res.status(400).json({
+              success: false,
+              message: `Bank approved item ${i + 1}: category_id must match one of the categories in items array`,
+            });
+          }
+        }
+      } catch (e) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid bank_approved JSON format',
+        });
+      }
+    }
+
     // ✅ Handle images - convert to URLs
     const images = req.files?.item_image 
       ? req.files.item_image.map((file) => imgUrl(file.filename)) 
@@ -161,6 +214,7 @@ exports.createLoan = async (req, res) => {
       nominee_dob,
 
       items,
+      bank_approved,
 
       gold_purity,
       market_value_per_gram: market_value_per_gram ? Number(market_value_per_gram) : undefined,
@@ -172,13 +226,6 @@ exports.createLoan = async (req, res) => {
 
       images,
     });
-
-    console.log('=== Loan Data Before Save ===');
-    console.log('market_value_for_gold (raw):', market_value_for_gold);
-    console.log('market_value_for_gold (converted):', Number(market_value_for_gold));
-    console.log('loan.market_value_for_gold:', loan.market_value_for_gold);
-    console.log('ltv:', loan.ltv);
-    console.log('=== End ===');
 
     await loan.save();
 
@@ -198,6 +245,7 @@ exports.createLoan = async (req, res) => {
     // Populate for PDF generation
     await loan.populate('bank_id', 'name logo');
     await loan.populate('items.category_id', 'name');
+    await loan.populate('bank_approved.category_id', 'name');
     
     const { loanForPDF, bankForPDF, settingsForPDF } = buildPDFPayload(
       loan,
@@ -214,6 +262,7 @@ exports.createLoan = async (req, res) => {
     // Reload loan to get updated pdf_path
     await loan.populate('bank_id', 'name logo');
     await loan.populate('items.category_id', 'name');
+    await loan.populate('bank_approved.category_id', 'name');
 
     // Format currency values for display
     const formatCurrency = (num) => {
@@ -284,6 +333,7 @@ exports.getLoans = async (req, res, next) => {
     const loans = await Loan.find({ user_id: req.user.id, ...ACTIVE })
       .populate('bank_id', 'name logo')
       .populate('items.category_id', 'name')
+      .populate('bank_approved.category_id', 'name')
       .sort({ createdAt: -1 });
     
     const formattedLoans = loans.map((l) => {
@@ -342,6 +392,7 @@ exports.getLoansHistory = async (req, res, next) => {
     const loans = await Loan.find(filter)
       .populate('bank_id', 'name logo')
       .populate('items.category_id', 'name')
+      .populate('bank_approved.category_id', 'name')
       .sort({ createdAt: -1 });
 
     const formattedLoans = loans.map((l) => {
@@ -465,7 +516,8 @@ exports.getLoanById = async (req, res, next) => {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) return error(res, 'Loan not found', 404);
     const loan = await Loan.findOne({ _id: req.params.id, user_id: req.user.id, ...ACTIVE })
       .populate('bank_id', 'name logo')
-      .populate('items.category_id', 'name');
+      .populate('items.category_id', 'name')
+      .populate('bank_approved.category_id', 'name');
     if (!loan) return error(res, 'Loan not found', 404);
     
     const formatCurrency = (num) => {
@@ -685,6 +737,7 @@ exports.getLoansByDate = async (req, res, next) => {
     const allLoans = await Loan.find(filter)
       .populate('bank_id', 'name logo')
       .populate('items.category_id', 'name')
+      .populate('bank_approved.category_id', 'name')
       .sort({ createdAt: -1 });
 
     console.log('Total loans fetched:', allLoans.length);

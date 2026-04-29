@@ -117,10 +117,60 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
   const ltvPercent = loan.ltv || 75;
   const maxAllowableLoan = totalMarketValue * (ltvPercent / 100);
   const advancedValueType = loan.advanced_value_type || 0;
-  const advancedValueNorms = Number(totalNetWeight) * Number(advancedValueType);
+  const bankApprovedTotal = loan.bank_approved_total || 0;
   const maxPermissibleLimit = loan.max_permissible_limit || 0;
   const finalAmount = loan.final_amount || 0;
   const accountBoxes = (loan.account_number || '').split('').map(char => `<div class="box">${escapeHtml(char)}</div>`).join('');
+
+  // Build bank_approved rows if exists
+  const bankApprovedRows = (loan.bank_approved && loan.bank_approved.length > 0)
+    ? loan.bank_approved.map((item, i) => {
+        let categoryName = 'N/A';
+        if (item.category_id) {
+          if (typeof item.category_id === 'object' && item.category_id.name) {
+            categoryName = item.category_id.name;
+          } else {
+            const catId = typeof item.category_id === 'string' ? item.category_id : item.category_id.toString();
+            categoryName = categoryMap[catId] || 'N/A';
+          }
+        }
+        return `
+        <tr>
+          <td class="no">${i + 1}</td>
+          <td class="desc">${escapeHtml(categoryName)}</td>
+          <td>${escapeHtml(item.net_weight)}</td>
+          <td>${escapeHtml(item.carat)}</td>
+          <td>${escapeHtml(item.rate_per_gram)}</td>
+          <td>${formatCurrency(item.value || 0)}</td>
+        </tr>`;
+      }).join('')
+    : '';
+
+  const bankApprovedTable = (loan.bank_approved && loan.bank_approved.length > 0)
+    ? `
+    <div style="margin-top: 16px; margin-bottom: 16px;">
+      <div style="font-size: 12px; font-weight: 700; margin-bottom: 6px; color: #111;">Bank Approved</div>
+      <table class="main" style="margin-bottom: 8px;">
+        <thead>
+          <tr>
+            <th style="width:44px;">No.</th>
+            <th>Gold Jewellery</th>
+            <th style="width:88px;">Net Weight (In grams)</th>
+            <th style="width:54px;">Carat</th>
+            <th style="width:88px;">Rate per Gram (in ₹)</th>
+            <th style="width:88px;">Value (in ₹)</th>
+          </tr>
+        </thead>
+        <tbody>${bankApprovedRows}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="5" style="text-align:center;">Total</td>
+            <td>${formatCurrency(bankApprovedTotal)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`
+    : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -248,8 +298,11 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
       <span class="underline-lg">${formatCurrency(totalMarketValue)}</span>
       &nbsp;&nbsp;&nbsp; ${ltvPercent}% of market value is  <span class="underline-lg">${formatCurrency(maxAllowableLoan)}</span>
     </div>
+  </div>
+  ${bankApprovedTable}
+  <div class="mv-section">
     <div class="line">
-      Advanced value as per Bank's Norms ₹ <span class="underline-lg">${formatCurrency(advancedValueNorms)}</span>
+      Advanced value as per Bank's Norms ₹ <span class="underline-lg">${formatCurrency(bankApprovedTotal)}</span>
     </div>
     <div class="line">
       Limit As per Bank's Advance Rate ₹: <span class="underline-lg">${advancedValueType}</span>

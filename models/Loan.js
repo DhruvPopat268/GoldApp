@@ -17,6 +17,14 @@ const goldItemSchema = new mongoose.Schema({
   market_value: { type: Number },
 });
 
+const bankApprovedItemSchema = new mongoose.Schema({
+  category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+  net_weight: { type: Number, required: true, min: [0.01, 'net_weight must be positive'] },
+  carat: { type: Number, enum: [18, 20, 22, 24], required: true },
+  rate_per_gram: { type: Number, required: true, min: [1, 'rate_per_gram must be positive'] },
+  value: { type: Number }, // net_weight * rate_per_gram
+});
+
 const loanSchema = new mongoose.Schema(
   {
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -35,13 +43,12 @@ const loanSchema = new mongoose.Schema(
 
     account_number: {
       type: String,
-      required: true,
       trim: true,
       match: [/^[A-Za-z0-9]{5,20}$/, 'Invalid account number format'],
     },
 
     nominee_name: { type: String, required: true, trim: true, maxlength: 150 },
-    nominee_dob: { type: Date, required: true },
+    nominee_dob: { type: Date},
 
     items: {
       type: [goldItemSchema],
@@ -49,6 +56,10 @@ const loanSchema = new mongoose.Schema(
     },
 
     total_items: { type: Number, default: 0 },
+
+    // Bank Approved Items
+    bank_approved: { type: [bankApprovedItemSchema], default: [] },
+    bank_approved_total: { type: Number, default: 0 },
 
     // 🔥 NEW FIELDS (FROM UI)
     gold_purity: { type: String, enum: ['18K', '20K', '22K', '24K'] },
@@ -89,6 +100,19 @@ loanSchema.pre('save', function () {
 
   this.total_items = totalItems;
   this.total_market_value = parseFloat(totalMarketValue.toFixed(2));
+
+  // Calculate bank_approved totals
+  if (this.bank_approved && this.bank_approved.length > 0) {
+    let bankApprovedTotal = 0;
+    this.bank_approved.forEach((item) => {
+      const value = item.net_weight * item.rate_per_gram;
+      item.value = parseFloat(value.toFixed(2));
+      bankApprovedTotal += value;
+    });
+    this.bank_approved_total = parseFloat(bankApprovedTotal.toFixed(2));
+  } else {
+    this.bank_approved_total = 0;
+  }
   
   // market_value_for_gold is stored as percentage (e.g., 90 means 90%)
   // Calculate actual rupee value for loan_value calculation
