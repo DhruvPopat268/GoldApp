@@ -6,7 +6,7 @@ const goldItemSchema = new mongoose.Schema({
   gross_weight: { type: Number, required: true, min: [0.01, 'gross_weight must be positive'] },
   net_weight: { type: Number, required: true, min: [0.01, 'net_weight must be positive'] },
 
-  carat: { type: Number, enum: [18, 20, 22, 24], required: true },
+  carat: { type: Number, required: true },
 
   rate_per_gram: { type: Number, required: true, min: [1, 'rate_per_gram must be positive'] },
 
