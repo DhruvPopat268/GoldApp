@@ -20,7 +20,7 @@ const goldItemSchema = new mongoose.Schema({
 const bankApprovedItemSchema = new mongoose.Schema({
   category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
   net_weight: { type: Number, required: true, min: [0.01, 'net_weight must be positive'] },
-  carat: { type: Number, enum: [18, 20, 22, 24], required: true },
+  carat: { type: Number, required: true },
   rate_per_gram: { type: Number, required: true, min: [1, 'rate_per_gram must be positive'] },
   value: { type: Number }, // net_weight * rate_per_gram
 });
