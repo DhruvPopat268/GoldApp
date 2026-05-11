@@ -205,58 +205,7 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
     </div>`
     : '';
 
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>${escapeHtml(bank.name)} – Gold Re Appraisal Memo</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #d6cfc4; font-family: 'Libre Franklin', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 32px 16px; }
-    .page { background: #faf8f3; width: 760px; padding: 28px 32px 36px; border: 1px solid #bbb; box-shadow: 0 4px 24px rgba(0,0,0,0.18); print-color-adjust: exact; }
-    .branch-bag-row { display: flex; gap: 40px; align-items: center; margin-bottom: 10px; font-size: 12px; }
-    .branch-bag-row .field-line { display: flex; align-items: center; gap: 6px; width: 20%; }
-    .branch-bag-row .field-line label { font-weight: 600; white-space: nowrap; }
-    .branch-bag-row .field-line .underline { border-bottom: 1px solid #555; flex: 1; display: inline-block; min-height: 18px; }
-    .header { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 2px solid #222; padding-bottom: 10px; margin-bottom: 14px; }
-    .logo-block { display: flex; align-items: center; gap: 10px; }
-    .logo-text-block { }
-    .logo-english { font-size: 13px; font-weight: 700; color: #222; }
-    .logo-tagline { font-size: 9px; color: #555; letter-spacing: 0.4px; }
-    .header-right { text-align: right; }
-    .memo-title { font-size: 18px; font-weight: 700; color: #111; letter-spacing: 0.3px; }
-    .fields-row { display: flex; gap: 24px; margin-bottom: 14px; font-size: 12px; color: #222; }
-    .field-line { display: flex; align-items: center; gap: 6px; flex: 1; }
-    .field-line label { font-weight: 600; white-space: nowrap; }
-    .field-line .underline { flex: 1; border-bottom: 1px solid #555; min-height: 18px; }
-    .acno-boxes { display: flex; gap: 2px; }
-    .acno-boxes .box { width: 20px; height: 20px; border: 1px solid #555; display: flex; align-items: center; justify-content: center; font-size: 10px; }
-    table.main { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-bottom: 14px; }
-    table.main th, table.main td { border: 1px solid #444; padding: 4px 6px; text-align: center; vertical-align: middle; }
-    table.main thead tr th { background: #e8e0d0; font-weight: 700; font-size: 11px; color: #111; }
-    table.main tbody td.desc { text-align: left; }
-    table.main tbody td.no { font-weight: 600; }
-    table.main tfoot td { font-weight: 700; background: #e8e0d0; font-size: 12px; }
-    .mv-section { font-size: 11.5px; color: #111; margin-bottom: 10px; line-height: 2.0; }
-    .mv-section .line { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 4px; }
-    .mv-section .underline { border-bottom: 1px solid #555; min-width: 80px; display: inline-block; padding: 0 4px; }
-    .mv-section .underline-lg { border-bottom: 1px solid #555; min-width: 160px; display: inline-block; padding: 0 4px; }
-    .sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; margin-bottom: 14px; font-size: 11.5px; }
-    .sign-line { display: flex; align-items: flex-end; gap: 6px; }
-    .sign-line label { font-weight: 600; white-space: nowrap; }
-    .sign-line .underline { flex:1; border-bottom: 1px solid #555; }
-    .loan-amount-box { padding: 10px 0; margin-bottom: 14px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; font-size: 11.5px; }
-    .loan-amount-box .label-box { font-family: 'Noto Sans Gujarati', sans-serif; font-weight: 600; }
-    .loan-amount-box .underline { border-bottom: 1px solid #555; min-width: 200px; display: inline-block; min-height: 20px; }
-    .cert-title { text-align: center; font-size: 14px; font-weight: 700; text-decoration: underline; margin-bottom: 8px; }
-    .cert-text { font-size: 11px; line-height: 1.7; color: #111; margin-bottom: 8px; }
-    .footer-row { display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; font-weight: 600; border-top: 1px solid #888; padding-top: 8px; }
-    @media print { body { background: none; padding: 0; } .page { box-shadow: none; } }
-  </style>
-</head>
-<body>
-<div class="page">
+  return `<div class="page">
   <div class="branch-bag-row">
     <div class="field-line">
       <label>Branch :</label>
@@ -385,13 +334,84 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
     <div style="padding-top: 40px;"><strong>Signature of Assayer</strong></div>
   </div>
 </div>
-</body>
-</html>`;
+</div>`;
 }
 
 async function generatePDF(loan, bank, categories, settings = null) {
   const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
-  const html = buildHTML(loan, bank, categories, settings, baseUrl);
+  const pageContent = buildHTML(loan, bank, categories, settings, baseUrl);
+  
+  // Create full HTML with 3 copies
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>${escapeHtml(bank.name)} – Gold Re Appraisal Memo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #d6cfc4; font-family: 'Libre Franklin', sans-serif; padding: 0; margin: 0; }
+    .page-wrapper { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 32px 16px; page-break-after: always; }
+    .page-wrapper:last-child { page-break-after: auto; }
+    .page { background: #faf8f3; width: 760px; padding: 28px 32px 36px; border: 1px solid #bbb; box-shadow: 0 4px 24px rgba(0,0,0,0.18); print-color-adjust: exact; margin: 0 auto; }
+    .branch-bag-row { display: flex; gap: 40px; align-items: center; margin-bottom: 10px; font-size: 12px; }
+    .branch-bag-row .field-line { display: flex; align-items: center; gap: 6px; width: 20%; }
+    .branch-bag-row .field-line label { font-weight: 600; white-space: nowrap; }
+    .branch-bag-row .field-line .underline { border-bottom: 1px solid #555; flex: 1; display: inline-block; min-height: 18px; }
+    .header { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 2px solid #222; padding-bottom: 10px; margin-bottom: 14px; }
+    .logo-block { display: flex; align-items: center; gap: 10px; }
+    .logo-text-block { }
+    .logo-english { font-size: 13px; font-weight: 700; color: #222; }
+    .logo-tagline { font-size: 9px; color: #555; letter-spacing: 0.4px; }
+    .header-right { text-align: right; }
+    .memo-title { font-size: 18px; font-weight: 700; color: #111; letter-spacing: 0.3px; }
+    .fields-row { display: flex; gap: 24px; margin-bottom: 14px; font-size: 12px; color: #222; }
+    .field-line { display: flex; align-items: center; gap: 6px; flex: 1; }
+    .field-line label { font-weight: 600; white-space: nowrap; }
+    .field-line .underline { flex: 1; border-bottom: 1px solid #555; min-height: 18px; }
+    .acno-boxes { display: flex; gap: 2px; }
+    .acno-boxes .box { width: 20px; height: 20px; border: 1px solid #555; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+    table.main { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-bottom: 14px; }
+    table.main th, table.main td { border: 1px solid #444; padding: 4px 6px; text-align: center; vertical-align: middle; }
+    table.main thead tr th { background: #e8e0d0; font-weight: 700; font-size: 11px; color: #111; }
+    table.main tbody td.desc { text-align: left; }
+    table.main tbody td.no { font-weight: 600; }
+    table.main tfoot td { font-weight: 700; background: #e8e0d0; font-size: 12px; }
+    .mv-section { font-size: 11.5px; color: #111; margin-bottom: 10px; line-height: 2.0; }
+    .mv-section .line { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 4px; }
+    .mv-section .underline { border-bottom: 1px solid #555; min-width: 80px; display: inline-block; padding: 0 4px; }
+    .mv-section .underline-lg { border-bottom: 1px solid #555; min-width: 160px; display: inline-block; padding: 0 4px; }
+    .sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; margin-bottom: 14px; font-size: 11.5px; }
+    .sign-line { display: flex; align-items: flex-end; gap: 6px; }
+    .sign-line label { font-weight: 600; white-space: nowrap; }
+    .sign-line .underline { flex:1; border-bottom: 1px solid #555; }
+    .loan-amount-box { padding: 10px 0; margin-bottom: 14px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; font-size: 11.5px; }
+    .loan-amount-box .label-box { font-family: 'Noto Sans Gujarati', sans-serif; font-weight: 600; }
+    .loan-amount-box .underline { border-bottom: 1px solid #555; min-width: 200px; display: inline-block; min-height: 20px; }
+    .cert-title { text-align: center; font-size: 14px; font-weight: 700; text-decoration: underline; margin-bottom: 8px; }
+    .cert-text { font-size: 11px; line-height: 1.7; color: #111; margin-bottom: 8px; }
+    .footer-row { display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; font-weight: 600; border-top: 1px solid #888; padding-top: 8px; }
+    @media print { 
+      body { background: none; padding: 0; } 
+      .page-wrapper { padding: 0; min-height: auto; page-break-after: always; }
+      .page-wrapper:last-child { page-break-after: auto; }
+      .page { box-shadow: none; margin: 0; } 
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    ${pageContent}
+  </div>
+  <div class="page-wrapper">
+    ${pageContent}
+  </div>
+  <div class="page-wrapper">
+    ${pageContent}
+  </div>
+</body>
+</html>`;
+  
   const filename = `loan_${loan._id}_${randomUUID()}.pdf`;
   const docsDir =
     process.env.NODE_ENV === 'production'
