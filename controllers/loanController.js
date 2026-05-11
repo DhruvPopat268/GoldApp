@@ -120,9 +120,23 @@ exports.createLoan = async (req, res) => {
       market_value_for_gold,
       final_amount,
       advanced_value_type,
+      branch,
+      bag_no,
+      due_date,
     } = req.body;
 
     const user_id = req.user.id; // From JWT auth middleware
+
+    // Validate due_date format (dd/mm/yyyy)
+    if (due_date) {
+      const dueDateRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+      if (!dueDateRegex.test(due_date)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid due_date format. Use dd/mm/yyyy format (e.g., 15/12/2026)',
+        });
+      }
+    }
 
     // ✅ Parse items
     let items = [];
@@ -223,6 +237,10 @@ exports.createLoan = async (req, res) => {
       market_value_for_gold: market_value_for_gold ? Number(market_value_for_gold) : undefined,
       final_amount: final_amount ? Number(final_amount) : undefined,
       advanced_value_type,
+
+      branch: branch || '',
+      bag_no: bag_no || '',
+      due_date: due_date || '',
 
       images,
     });

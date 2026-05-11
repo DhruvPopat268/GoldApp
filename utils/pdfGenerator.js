@@ -209,11 +209,11 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
   <div class="branch-bag-row">
     <div class="field-line">
       <label>Branch :</label>
-      <div class="underline"></div>
+      <div class="underline">${escapeHtml(loan.branch || '')}</div>
     </div>
     <div class="field-line">
       <label>Bag No :</label>
-      <div class="underline"></div>
+      <div class="underline">${escapeHtml(loan.bag_no || '')}</div>
     </div>
   </div>
   <div class="header">
@@ -329,7 +329,7 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
   <div class="footer-row">
     <div>
       <div><strong>Date :</strong> ${formatDate(new Date())}</div>
-      <div style="margin-top: 8px;"><strong>Due Date :</strong> ______________</div>
+      <div style="margin-top: 8px;"><strong>Due Date :</strong> ${escapeHtml(loan.due_date || '')}</div>
     </div>
     <div style="padding-top: 40px;"><strong>Signature of Assayer</strong></div>
   </div>

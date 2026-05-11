@@ -70,6 +70,10 @@ const loanSchema = new mongoose.Schema(
     final_amount: { type: Number },
     advanced_value_type: { type: String, default: 'LTV' },
 
+    branch: { type: String, trim: true, maxlength: 200 },
+    bag_no: { type: String, trim: true, maxlength: 100 },
+    due_date: { type: String, trim: true }, // Format: dd/mm/yyyy
+
     total_market_value: { type: Number },
     loan_value: { type: Number },
 
