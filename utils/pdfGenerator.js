@@ -182,6 +182,10 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #d6cfc4; font-family: 'Libre Franklin', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 32px 16px; }
     .page { background: #faf8f3; width: 760px; padding: 28px 32px 36px; border: 1px solid #bbb; box-shadow: 0 4px 24px rgba(0,0,0,0.18); print-color-adjust: exact; }
+    .branch-bag-row { display: flex; gap: 40px; align-items: center; margin-bottom: 10px; font-size: 12px; }
+    .branch-bag-row .field-line { display: flex; align-items: center; gap: 6px; width: 20%; }
+    .branch-bag-row .field-line label { font-weight: 600; white-space: nowrap; }
+    .branch-bag-row .field-line .underline { border-bottom: 1px solid #555; flex: 1; display: inline-block; min-height: 18px; }
     .header { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 2px solid #222; padding-bottom: 10px; margin-bottom: 14px; }
     .logo-block { display: flex; align-items: center; gap: 10px; }
     .logo-text-block { }
@@ -220,6 +224,16 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
 </head>
 <body>
 <div class="page">
+  <div class="branch-bag-row">
+    <div class="field-line">
+      <label>Branch :</label>
+      <div class="underline"></div>
+    </div>
+    <div class="field-line">
+      <label>Bag No :</label>
+      <div class="underline"></div>
+    </div>
+  </div>
   <div class="header">
     <div class="logo-block">
       ${logoTag}
@@ -319,7 +333,7 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
   </div>
   <div class="sign-grid" style="margin-top: 20px;">
     <div class="sign-line"><label>Sign of Officer</label><div class="underline"></div></div>
-    <div class="sign-line"><label>Sign of Officer</label><div class="underline"></div></div>
+    <div class="sign-line"><label>Sign of Assayer</label><div class="underline"></div></div>
   </div>
   <div style="margin-top: 24px;"></div>
   <div class="cert-title">Valuation Certificate</div>
@@ -329,7 +343,10 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
     to the best of my knowledge correct & in order.
   </div>
   <div class="footer-row">
-    <div><strong>Date :</strong> ${formatDate(new Date())}</div>
+    <div>
+      <div><strong>Date :</strong> ${formatDate(new Date())}</div>
+      <div style="margin-top: 8px;"><strong>Due Date :</strong> ______________</div>
+    </div>
     <div style="padding-top: 40px;"><strong>Signature of Assayer</strong></div>
   </div>
 </div>
