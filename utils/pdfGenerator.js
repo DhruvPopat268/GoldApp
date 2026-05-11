@@ -87,14 +87,13 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
         }
       }
       
-      // Add quantity in parentheses if total_items > 1
       const quantity = item.total_items || 1;
-      const displayName = quantity > 1 ? `${categoryName} (${quantity})` : categoryName;
       
       return `
       <tr>
         <td class="no">${i + 1}</td>
-        <td class="desc">${escapeHtml(displayName)}</td>
+        <td class="desc">${escapeHtml(categoryName)}</td>
+        <td>${quantity}</td>
         <td>${escapeHtml(item.gross_weight)}</td>
         <td>${escapeHtml(item.net_weight)}</td>
         <td>${escapeHtml(item.carat)}</td>
@@ -111,6 +110,7 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
 
   const totalGrossWeight = loan.items.reduce((sum, item) => sum + Number(item.gross_weight || 0), 0).toFixed(2);
   const totalNetWeight = loan.items.reduce((sum, item) => sum + Number(item.net_weight || 0), 0).toFixed(2);
+  const totalItems = loan.items.reduce((sum, item) => sum + Number(item.total_items || 1), 0);
   const totalMarketValue = loan.total_market_value || 0;
   const marketValueForGoldPercent = loan.market_value_for_gold || 100;
   const goldPurity = loan.gold_purity || '';
@@ -134,10 +134,28 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
             categoryName = categoryMap[catId] || 'N/A';
           }
         }
+        
+        // Find matching item from loan.items by category_id and net_weight only
+        let totalItems = 1;
+        const matchingItem = loan.items.find(loanItem => {
+          const loanCatId = typeof loanItem.category_id === 'object' 
+            ? loanItem.category_id._id.toString() 
+            : loanItem.category_id.toString();
+          const bankCatId = typeof item.category_id === 'object'
+            ? item.category_id._id.toString()
+            : item.category_id.toString();
+          return loanCatId === bankCatId && 
+                 Number(loanItem.net_weight) === Number(item.net_weight);
+        });
+        if (matchingItem) {
+          totalItems = matchingItem.total_items || 1;
+        }
+        
         return `
         <tr>
           <td class="no">${i + 1}</td>
           <td class="desc">${escapeHtml(categoryName)}</td>
+          <td>${totalItems}</td>
           <td>${escapeHtml(item.net_weight)}</td>
           <td>${escapeHtml(item.carat)}</td>
           <td>${escapeHtml(item.rate_per_gram)}</td>
@@ -155,6 +173,7 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
           <tr>
             <th style="width:44px;">No.</th>
             <th>Gold Jewellery</th>
+            <th style="width:54px;">Items</th>
             <th style="width:88px;">Net Weight (In grams)</th>
             <th style="width:54px;">Carat</th>
             <th style="width:88px;">Rate per Gram (in ₹)</th>
@@ -164,7 +183,21 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
         <tbody>${bankApprovedRows}</tbody>
         <tfoot>
           <tr>
-            <td colspan="5" style="text-align:center;">Total</td>
+            <td colspan="2" style="text-align:center;">Total</td>
+            <td>${loan.bank_approved.reduce((sum, item) => {
+              const matchingItem = loan.items.find(loanItem => {
+                const loanCatId = typeof loanItem.category_id === 'object' 
+                  ? loanItem.category_id._id.toString() 
+                  : loanItem.category_id.toString();
+                const bankCatId = typeof item.category_id === 'object'
+                  ? item.category_id._id.toString()
+                  : item.category_id.toString();
+                return loanCatId === bankCatId &&
+                       Number(loanItem.net_weight) === Number(item.net_weight);
+              });
+              return sum + (matchingItem ? (matchingItem.total_items || 1) : 1);
+            }, 0)}</td>
+            <td colspan="3"></td>
             <td>${formatCurrency(bankApprovedTotal)}</td>
           </tr>
         </tfoot>
@@ -287,6 +320,7 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
       <tr>
         <th style="width:44px;">No. of Article</th>
         <th>Description of the Gold Jewellery</th>
+        <th style="width:54px;">Items</th>
         <th style="width:88px;">Gross Weight (In grams)</th>
         <th style="width:88px;">Net Weight (In grams)</th>
         <th style="width:54px;">Carat</th>
@@ -298,6 +332,7 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
     <tfoot>
       <tr>
         <td colspan="2" style="text-align:center;">Total</td>
+        <td>${totalItems}</td>
         <td>${totalGrossWeight}</td>
         <td>${totalNetWeight}</td>
         <td></td>
