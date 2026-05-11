@@ -128,15 +128,19 @@ exports.createLoan = async (req, res) => {
     const user_id = req.user.id; // From JWT auth middleware
 
     // Validate due_date format (dd/mm/yyyy)
-    if (due_date) {
-      const dueDateRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
-      if (!dueDateRegex.test(due_date)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid due_date format. Use dd/mm/yyyy format (e.g., 15/12/2026)',
-        });
-      }
-    }
+// Validate due_date format (d/m/yyyy or dd/mm/yyyy)
+if (due_date) {
+  const dueDateRegex =
+    /^(0?[1-9]|[12][0-9]|3[01])\/(0?[1-9]|1[0-2])\/\d{4}$/;
+
+  if (!dueDateRegex.test(due_date)) {
+    return res.status(400).json({
+      success: false,
+      message:
+        'Invalid due_date format. Use d/m/yyyy or dd/mm/yyyy format (e.g., 1/5/2026 or 01/05/2026)',
+    });
+  }
+}
 
     // ✅ Parse items
     let items = [];
