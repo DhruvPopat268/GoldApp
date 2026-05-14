@@ -225,7 +225,7 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
       </div>
     </div>
     <div class="header-right">
-      <div class="memo-title">Gold Re Appraisal Memo</div>
+      <div class="memo-title">Gold Appraisal Memo</div>
     </div>
   </div>
   <div class="fields-row">
@@ -239,9 +239,9 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
     </div>
   </div>
   <div class="fields-row">
-    <div class="field-line" style="flex:none;">
+    <div class="field-line">
       <label>A/c No. :</label>
-      <div class="acno-boxes">${accountBoxes}</div>
+      <div class="underline">${escapeHtml(loan.account_number || '')}</div>
     </div>
     <div class="field-line">
       <label>Mobile :</label>
@@ -294,7 +294,6 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
     <div class="line">
       Market value for above Gold @ <span class="underline">${marketValueForGoldPercent}%</span> is
       <span class="underline-lg">${formatCurrency(totalMarketValue)}</span>
-      &nbsp;&nbsp;&nbsp; ${ltvPercent}% of market value is  <span class="underline-lg">${formatCurrency(maxAllowableLoan)}</span>
     </div>
   </div>
   ${bankApprovedTable}
