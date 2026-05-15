@@ -66,7 +66,7 @@ function getDataUri(urlStr, baseUrl) {
 
 const safeUrl = (urlStr) => (isSafeUrl(urlStr) ? urlStr : null);
 
-function buildHTML(loan, bank, categories, settings, baseUrl) {
+function buildHTML(loan, bank, categories, settings, baseUrl, copyLabel = '') {
   const categoryMap = {};
   categories.forEach((c) => {
     categoryMap[c._id.toString()] = c.name;
@@ -122,9 +122,39 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
   const finalAmount = loan.final_amount || 0;
   const accountBoxes = (loan.account_number || '').split('').map(char => `<div class="box">${escapeHtml(char)}</div>`).join('');
 
-  // Build bank_approved rows if exists
-  const bankApprovedRows = (loan.bank_approved && loan.bank_approved.length > 0)
-    ? loan.bank_approved.map((item, i) => {
+  // Build bank_approved rows grouped by carat
+  let bankApprovedRows = '';
+  let bankApprovedTotalItems = 0;
+  let bankApprovedTotalNetWeight = 0;
+  let bankApprovedTotalValue = 0;
+  
+  if (loan.bank_approved && loan.bank_approved.length > 0) {
+    // Group by carat
+    const groupedByCarat = {};
+    loan.bank_approved.forEach(item => {
+      const carat = item.carat;
+      if (!groupedByCarat[carat]) {
+        groupedByCarat[carat] = [];
+      }
+      groupedByCarat[carat].push(item);
+    });
+    
+    // Sort carats in descending order (24, 22, 20, 18)
+    const sortedCarats = Object.keys(groupedByCarat).sort((a, b) => Number(b) - Number(a));
+    
+    sortedCarats.forEach(carat => {
+      const items = groupedByCarat[carat];
+      
+      // Build jewellery description with format: CATEGORY (weight) - count
+      const jewelleryParts = [];
+      const itemCounts = [];
+      const netWeights = [];
+      let totalItemsForCarat = 0;
+      let totalNetWeightForCarat = 0;
+      let ratePerGram = 0;
+      let totalValueForCarat = 0;
+      
+      items.forEach(item => {
         let categoryName = 'N/A';
         if (item.category_id) {
           if (typeof item.category_id === 'object' && item.category_id.name) {
@@ -135,7 +165,7 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
           }
         }
         
-        // Find matching item from loan.items by category_id and net_weight only
+        // Find matching item from loan.items
         let totalItems = 1;
         const matchingItem = loan.items.find(loanItem => {
           const loanCatId = typeof loanItem.category_id === 'object' 
@@ -151,18 +181,40 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
           totalItems = matchingItem.total_items || 1;
         }
         
-        return `
-        <tr>
-          <td class="no">${i + 1}</td>
-          <td class="desc">${escapeHtml(categoryName)}</td>
-          <td>${totalItems}</td>
-          <td>${escapeHtml(item.net_weight)}</td>
-          <td>${escapeHtml(item.carat)}</td>
-          <td>${escapeHtml(item.rate_per_gram)}</td>
-          <td>${formatCurrency(item.value || 0)}</td>
-        </tr>`;
-      }).join('')
-    : '';
+        jewelleryParts.push(`${categoryName.toUpperCase()} (${item.net_weight}g) - ${totalItems}`);
+        itemCounts.push(totalItems);
+        netWeights.push(Number(item.net_weight));
+        
+        totalItemsForCarat += totalItems;
+        totalNetWeightForCarat += Number(item.net_weight);
+        ratePerGram = Number(item.rate_per_gram);
+        totalValueForCarat += Number(item.value || 0);
+      });
+      
+      bankApprovedTotalItems += totalItemsForCarat;
+      bankApprovedTotalNetWeight += totalNetWeightForCarat;
+      bankApprovedTotalValue += totalValueForCarat;
+      
+      const jewelleryDesc = jewelleryParts.join(', ');
+      const itemCountsStr = itemCounts.length > 1 ? `(${itemCounts.join(' + ')})` : `(${itemCounts[0]})`;
+      const netWeightsStr = netWeights.length > 1 ? `(${netWeights.join(' + ')})` : `(${netWeights[0]})`;
+      
+      bankApprovedRows += `
+      <tr>
+        <td style="font-weight:700;">${carat}K</td>
+        <td class="desc">${escapeHtml(jewelleryDesc)}</td>
+        <td>${totalItemsForCarat}<br/><span style="font-size:10px;">${itemCountsStr}</span></td>
+        <td>${totalNetWeightForCarat}<br/><span style="font-size:10px;">${netWeightsStr}</span></td>
+        <td>${formatCurrency(ratePerGram)}</td>
+        <td>${formatCurrency(totalValueForCarat)}</td>
+      </tr>`;
+    });
+  }
+  
+  // Calculate average rate per gram
+  const avgRatePerGram = bankApprovedTotalNetWeight > 0 
+    ? (bankApprovedTotalValue / bankApprovedTotalNetWeight).toFixed(2)
+    : 0;
 
   const bankApprovedTable = (loan.bank_approved && loan.bank_approved.length > 0)
     ? `
@@ -171,11 +223,10 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
       <table class="main" style="margin-bottom: 8px;">
         <thead>
           <tr>
-            <th style="width:44px;">No.</th>
-            <th>Gold Jewellery</th>
-            <th style="width:54px;">Items</th>
-            <th style="width:88px;">Net Weight (In grams)</th>
             <th style="width:54px;">Carat</th>
+            <th>Gold Jewellery (Item Wise)</th>
+            <th style="width:88px;">Total Items (Carets)</th>
+            <th style="width:88px;">Net Weight (in grams)</th>
             <th style="width:88px;">Rate per Gram (in ₹)</th>
             <th style="width:88px;">Value (in ₹)</th>
           </tr>
@@ -183,22 +234,11 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
         <tbody>${bankApprovedRows}</tbody>
         <tfoot>
           <tr>
-            <td colspan="2" style="text-align:center;">Total</td>
-            <td>${loan.bank_approved.reduce((sum, item) => {
-              const matchingItem = loan.items.find(loanItem => {
-                const loanCatId = typeof loanItem.category_id === 'object' 
-                  ? loanItem.category_id._id.toString() 
-                  : loanItem.category_id.toString();
-                const bankCatId = typeof item.category_id === 'object'
-                  ? item.category_id._id.toString()
-                  : item.category_id.toString();
-                return loanCatId === bankCatId &&
-                       Number(loanItem.net_weight) === Number(item.net_weight);
-              });
-              return sum + (matchingItem ? (matchingItem.total_items || 1) : 1);
-            }, 0)}</td>
-            <td colspan="3"></td>
-            <td>${formatCurrency(bankApprovedTotal)}</td>
+            <td colspan="2" style="text-align:center;font-weight:700;">TOTAL</td>
+            <td style="font-weight:700;">${bankApprovedTotalItems}</td>
+            <td style="font-weight:700;">${bankApprovedTotalNetWeight}</td>
+            <td style="font-weight:700;">${formatCurrency(avgRatePerGram)}<br/><span style="font-size:10px;">(Average)</span></td>
+            <td style="font-weight:700;">${formatCurrency(bankApprovedTotalValue)}</td>
           </tr>
         </tfoot>
       </table>
@@ -225,6 +265,7 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
       </div>
     </div>
     <div class="header-right">
+      ${copyLabel ? `<div class="copy-label">${escapeHtml(copyLabel)}</div>` : ''}
       <div class="memo-title">Gold Appraisal Memo</div>
     </div>
   </div>
@@ -338,7 +379,9 @@ function buildHTML(loan, bank, categories, settings, baseUrl) {
 
 async function generatePDF(loan, bank, categories, settings = null) {
   const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
-  const pageContent = buildHTML(loan, bank, categories, settings, baseUrl);
+  const pageContent1 = buildHTML(loan, bank, categories, settings, baseUrl, '( Copy put into Jewels Bag )');
+  const pageContent2 = buildHTML(loan, bank, categories, settings, baseUrl, '( Branch Copy )');
+  const pageContent3 = buildHTML(loan, bank, categories, settings, baseUrl, '( Customer Copy )');
   
   // Create full HTML with 3 copies
   const html = `<!DOCTYPE html>
@@ -363,6 +406,7 @@ async function generatePDF(loan, bank, categories, settings = null) {
     .logo-english { font-size: 13px; font-weight: 700; color: #222; }
     .logo-tagline { font-size: 9px; color: #555; letter-spacing: 0.4px; }
     .header-right { text-align: right; }
+    .copy-label { font-size: 11px; color: #111; margin-bottom: 4px; font-weight: 700; letter-spacing: 0.3px; }
     .memo-title { font-size: 18px; font-weight: 700; color: #111; letter-spacing: 0.3px; }
     .fields-row { display: flex; gap: 24px; margin-bottom: 14px; font-size: 12px; color: #222; }
     .field-line { display: flex; align-items: center; gap: 6px; flex: 1; }
@@ -400,13 +444,13 @@ async function generatePDF(loan, bank, categories, settings = null) {
 </head>
 <body>
   <div class="page-wrapper">
-    ${pageContent}
+    ${pageContent1}
   </div>
   <div class="page-wrapper">
-    ${pageContent}
+    ${pageContent2}
   </div>
   <div class="page-wrapper">
-    ${pageContent}
+    ${pageContent3}
   </div>
 </body>
 </html>`;
