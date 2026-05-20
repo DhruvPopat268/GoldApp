@@ -342,9 +342,7 @@ function buildHTML(loan, bank, categories, settings, baseUrl, copyLabel = '') {
     <div class="line">
       Advanced value as per Bank's Norms ₹ <span class="underline-lg">${formatCurrency(bankApprovedTotal)}</span>
     </div>
-    <div class="line">
-      Limit As per Bank's Advance Rate ₹: <span class="underline-lg">${advancedValueType}</span>
-    </div>
+    
   </div>
   <div style="margin-top: 24px;"></div>
   <div class="loan-amount-box">
