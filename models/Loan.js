@@ -47,7 +47,7 @@ const loanSchema = new mongoose.Schema(
       match: [/^[A-Za-z0-9]{5,20}$/, 'Invalid account number format'],
     },
 
-    nominee_name: { type: String, required: true, trim: true, maxlength: 150 },
+    nominee_name: { type: String, trim: true, maxlength: 150 },
     nominee_dob: { type: Date},
 
     items: {
