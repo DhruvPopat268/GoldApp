@@ -62,7 +62,7 @@ const loanSchema = new mongoose.Schema(
     bank_approved_total: { type: Number, default: 0 },
 
     // 🔥 NEW FIELDS (FROM UI)
-    gold_purity: { type: String, enum: ['18K', '20K', '22K', '24K'] },
+    gold_purity: { type: String},
     market_value_per_gram: { type: Number },
     ltv: { type: Number }, // %
     max_permissible_limit: { type: Number }, // USER INPUT - Can be manually entered
